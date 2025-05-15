@@ -50,8 +50,7 @@ func simulateAIResponse(userMessage, model string) []ChatMessage {
    return chunks
 }
 
-func SSEChat(w http.ResponseWriter, r *http.Request) {
-   // 設置SSE必要的頭信息
+func SSEChat(w http.ResponseWriter, r *http.Request) {   
    w.Header().Set("Content-Type", "text/event-stream")
    w.Header().Set("Cache-Control", "no-cache")
    w.Header().Set("Connection", "keep-alive")
@@ -78,24 +77,18 @@ func SSEChat(w http.ResponseWriter, r *http.Request) {
    responses := simulateAIResponse(message, model)
 
    // 逐步發送回應片段
-   for _, chunk := range responses {
-      // 將消息轉換為JSON
-      data, err := json.Marshal(chunk)
+   for _, chunk := range responses {      
+      data, err := json.Marshal(chunk)  // 將消息轉換為JSON
       if err != nil {
          fmt.Println("JSON編碼錯誤:", err)
          continue
       }
-
-      // 發送SSE格式的消息
-      fmt.Fprintf(w, "data: %s\n\n", data)
+      fmt.Fprintf(w, "data: %s\n\n", data)  // 發送SSE格式的消息
       flusher.Flush()
-
-      // 模擬打字延遲
-      time.Sleep(100 * time.Millisecond)
+      time.Sleep(100 * time.Millisecond)  // 模擬打字延遲
    }
 
-   // 發送完成信號
-   completeMsg := ChatMessage{
+   completeMsg := ChatMessage{  // 發送完成信號
       Type:    "complete",
       Content: "",
    }
@@ -109,11 +102,11 @@ func handleNewChat(w http.ResponseWriter, r *http.Request) {
    // 返回空的對話區域以重置對話
    w.Header().Set("Content-Type", "text/html")
    fmt.Fprint(w, `<div class="message-container">
-      <div class="message ai-message">您好！我已經為您開始了一個新對話。我能幫您什麼忙嗎？</div>
+      <div class="message ai-message"><div class="message-content">您好！我已經為您開始了一個新對話。我能幫您什麼忙嗎？</div></div>
    </div>`)
 }
 
-// 處理發送消息的表單提交
+// 處理使用者發送消息的 form submit
 func handleSendMessage(w http.ResponseWriter, r *http.Request) {
    // 解析表單
    if err := r.ParseForm(); err != nil {
@@ -123,14 +116,14 @@ func handleSendMessage(w http.ResponseWriter, r *http.Request) {
    }
 
    // 獲取用戶消息
-   message := r.FormValue("user-message")
+   message := r.FormValue("message-input")
    if message == "" {
-      fmt.Println("empty message")
+      fmt.Println("empty message @ Send Message")
       http.Error(w, "消息不能為空", http.StatusBadRequest)
       return
    }
 
    // 回傳用戶消息，實際處理會通過SSE進行
    w.Header().Set("Content-Type", "text/html")
-   fmt.Fprintf(w, `<div class="message user-message">%s</div>`, message)
+   fmt.Fprintf(w, `<div class="message user-message"><div class="message-content">%s</div></div>`, message)
 }
