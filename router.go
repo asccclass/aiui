@@ -13,7 +13,7 @@ func NewRouter(srv *SherryServer.Server, documentRoot string)(*http.ServeMux) {
    staticfileserver := SherryServer.StaticFileServer{documentRoot, "index.html"}
    staticfileserver.AddRouter(router)
 
-   // App router
+   // Input App router
    router.Handle("/new-chat", http.HandlerFunc(handleNewChat))
    router.Handle("/sse", http.HandlerFunc(SSEChat))
    router.Handle("/send-message", http.HandlerFunc(handleSendMessage))

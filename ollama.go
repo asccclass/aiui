@@ -1,18 +1,17 @@
 package main
 
 import (
+	"os"
+	"io"
+	"fmt"
+	"time"
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 )
 
 const (
@@ -28,10 +27,6 @@ type Model struct {
 	Description string    `json:"description,omitempty"`
 }
 
-// 模型列表回應結構
-type ListModelsResponse struct {
-	Models []Model `json:"models"`
-}
 
 // 生成請求結構
 type GenerateRequest struct {
@@ -75,36 +70,41 @@ type GenerateResponse struct {
 	EvalDuration       int64     `json:"eval_duration,omitempty"`
 }
 
+type OllamaClient struct {
+	URL		string		`json:"url"`		// Ollama 服務的 URL
+	Models	[]Model		`json:"models"`   // 模型列表回應結構
+}
+
 // 獲取所有可用模型
-func getModels() ([]Model, error) {
-	resp, err := http.Get(ollamaURL + "/api/tags")
+func(app *OllamaClient) getModels() ([]Model, error) {
+	resp, err := http.Get(app.URL + "/api/tags")
 	if err != nil {
 		return nil, fmt.Errorf("連接到 Ollama 服務失敗: %v", err)
 	}
 	defer resp.Body.Close()
-
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("獲取模型列表失敗，狀態碼: %d", resp.StatusCode)
 	}
-
 	var listResp ListModelsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&listResp); err != nil {
 		return nil, fmt.Errorf("解析回應失敗: %v", err)
 	}
-
 	return listResp.Models, nil
 }
 
 // 顯示所有可用模型
-func displayModels(models []Model) {
-	fmt.Println("=== 可用模型列表 ===")
-	for i, model := range models {
-		size := float64(model.Size) / (1024 * 1024 * 1024)
-		fmt.Printf("%d. %s (%.2f GB) - 修改時間: %s\n",
-			i+1, model.Name, size, model.ModifiedAt.Format("2006-01-02 15:04:05"))
-	}
-	fmt.Println("==================")
+func(app *OllamaClient) ListModelsFromWeb(w http.ResponseWriter, r *http.Request) {
+/*
+type Model struct {
+	Name        string    `json:"name"`
+	Size        int64     `json:"size"`
+	ModifiedAt  time.Time `json:"modified_at"`
+	Digest      string    `json:"digest"`
+	Description string    `json:"description,omitempty"`
+	SizeGB	  string   `json:"size_gb,omitempty"`
+	ModiTime  string   `json:"modified_time,omitempty"`
 }
+*/
 
 // 產生回應（非串流模式）
 func generateResponse(modelName, prompt string, files []string) (string, error) {
@@ -194,22 +194,38 @@ func handleFileUpload() []string {
 	}
 }
 
-func main() {
-	fmt.Println("=== Ollama 客戶端 ===")
-	fmt.Printf("連接到 Ollama 服務: %s\n", ollamaURL)
-	
-	// 獲取可用模型
-	models, err := getModels()
+func(app *OllamaClient) AddRouter(router *http.ServeMux) {
+   router.HandleFunc("GET /models", app.ListModelsFromWeb)                // 列出工具列表
+   // router.HandleFunc("/update/overwrite/{type}", app.OverWriteDataFromWeb)      // 更新檔案內容
+}
+
+func NewOllamaClient()(*OllamaClient) {
+	app := &OllamaClient{
+		URL: os.Getenv("OllamaUrl"),
+	}
+	if app.URL == "" {
+		fmt.Printf("未設定 envfile 中的 OllamaUrl 參數")
+		return nil
+	}
+	app.Models, err := app.getModels()
 	if err != nil {
-		log.Fatalf("獲取模型列表失敗: %v", err)
+		fmt.Printf("獲取模型列表失敗: %s", err.Error())
+		return nil
 	}
 	
-	if len(models) == 0 {
-		log.Fatalf("沒有找到可用模型")
+	for i, model := range app.Models {
+		size := float64(model.Size) / (1024 * 1024 * 1024)
+		app.Models[i].SizeGB = fmt.Sprintf("%.2f GB", size)
+		app.Models[i].ModiTime = model.ModifiedAt.Format("2006-01-02 15:04:05")
 	}
+	return app
+}
+
+func main() {
+	
 	
 	// 顯示可用模型
-	displayModels(models)
+	
 	
 	// 選擇模型
 	var modelIndex int

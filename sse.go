@@ -61,11 +61,11 @@ func SSEChat(w http.ResponseWriter, r *http.Request) {
    model := r.URL.Query().Get("model")
 
    if message == "" {
-      fmt.Println("空消息")
+      fmt.Println("使用者傳送空白資訊")
       return
    }
 
-   fmt.Printf("收到消息: %s，使用模型: %s\n", message, model)
+   // fmt.Printf("收到消息: %s，使用模型: %s\n", message, model)
 
    // 創建SSE刷新器
    flusher, ok := w.(http.Flusher)
