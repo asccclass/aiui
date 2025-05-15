@@ -1,0 +1,140 @@
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+h1, h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+#connection-controls form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+#connection-controls label {
+    font-weight: bold;
+}
+
+#connection-controls input[type="text"],
+#connection-controls input[type="number"] {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex-grow: 1;
+}
+
+#connection-controls button,
+#command-form button {
+    padding: 10px 15px;
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+#connection-controls form button[type="submit"] { /* Connect button */
+   background-color: #007bff;
+}
+#connection-controls form:nth-of-type(2) button[type="submit"] { /* Disconnect button */
+    background-color: #d9534f;
+}
+
+
+#connection-controls button:hover,
+#command-form button:hover {
+    background-color: #4cae4c;
+}
+#connection-controls form button[type="submit"]:hover {
+   background-color: #0056b3;
+}
+#connection-controls form:nth-of-type(2) button[type="submit"]:hover {
+    background-color: #c9302c;
+}
+
+
+#connection-status {
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    text-align: center;
+}
+#connection-status.success {
+    background-color: #dff0d8;
+    color: #3c763d;
+    border: 1px solid #d6e9c6;
+}
+#connection-status.error {
+    background-color: #f2dede;
+    color: #a94442;
+    border: 1px solid #ebccd1;
+}
+#connection-status.info {
+    background-color: #d9edf7;
+    color: #31708f;
+    border: 1px solid #bce8f1;
+}
+
+
+#mud-output-container {
+    margin-top: 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+#mud-output {
+    height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    background-color: #222; /* Dark background for MUD output */
+    color: #eee; /* Light text */
+    font-family: "Courier New", Courier, monospace; /* Monospaced font */
+    white-space: pre-wrap; /* Preserve whitespace and wrap lines */
+    word-break: break-all; /* Break long words to prevent overflow */
+}
+
+#mud-output div, #mud-output span {
+    margin-bottom: 2px; /* Small spacing between lines */
+}
+
+.mcp {
+    color: #88aaff; /* Distinct color for MCP messages */
+    font-style: italic;
+}
+.error { /* Error messages from the backend/MUD connection */
+    color: #ff6b6b;
+    font-weight: bold;
+}
+
+
+#command-form {
+    display: flex;
+    margin-top: 20px;
+    gap: 10px;
+}
+
+.command-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}

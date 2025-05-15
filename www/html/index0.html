@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JustDrink AI UI</title>
+    <!-- 加入HTMX庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.5/htmx.min.js"></script>
+    <!-- 加入SSE擴展 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.5/ext/sse.min.js"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: #ffffff;
+            height: 100vh;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 將下拉選單移到新對話框上方 */
+        .model-selection {
+            margin-bottom: 15px;
+        }
+
+        #model-dropdown {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+        }
+
+        .new-chat-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .conversations {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .conversation-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .conversation-item:hover {
+            background-color: #f1f1f1;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background-color: #e7f5ff;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .ai-message {
+            background-color: #f1f1f1;
+            align-self: flex-start;
+        }
+
+        .input-area {
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .input-box {
+            display: flex;
+        }
+
+        #user-input {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-right: 10px;
+            resize: none;
+        }
+
+        .send-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .message-container {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .typing-indicator {
+            display: none;
+            padding: 10px;
+            background-color: #f1f1f1;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <!-- 下拉選單移到新對話框上方 -->
+        <div class="model-selection">
+            <select id="model-dropdown">
+                <option value="gpt-3.5">GPT-3.5</option>
+                <option value="gpt-4">GPT-4</option>
+                <option value="claude-3">Claude-3</option>
+                <option value="gemini-pro">Gemini Pro</option>
+            </select>
+        </div>
+        
+        <button class="new-chat-button" hx-post="/new-chat" hx-trigger="click" hx-target=".chat-area" hx-swap="innerHTML">
+            開始新對話
+        </button>
+        
+        <div class="conversations">
+            <div class="conversation-item">對話 1</div>
+            <div class="conversation-item">對話 2</div>
+            <div class="conversation-item">對話 3</div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <div class="chat-area">
+            <div class="message-container">
+                <div class="message ai-message">您好！我是AI助手，有什麼我可以幫您的嗎？</div>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <form hx-post="/send-message" hx-trigger="submit" hx-target=".message-container" hx-swap="beforeend" hx-indicator=".typing-indicator">
+                <div class="input-box">
+                    <textarea id="user-input" name="user-message" placeholder="請輸入您的問題..." rows="3"></textarea>
+                    <button type="submit" class="send-button">發送</button>
+                </div>
+            </form>
+            <div class="typing-indicator">AI正在思考回應...</div>
+        </div>
+    </div>
+
+    <script>
+        // 初始化HTMX的SSE擴展
+        document.addEventListener('DOMContentLoaded', function() {
+            htmx.defineExtension('sse-events', {
+                onEvent: function(name, event) {
+                    if (name === 'message') {
+                        const data = JSON.parse(event.data);
+                        const messageContainer = document.querySelector('.message-container');
+                        
+                        // 檢查是否為完成的消息
+                        if (data.type === 'complete') {
+                            // 隱藏正在輸入指示器
+                            document.querySelector('.typing-indicator').style.display = 'none';
+                        } else if (data.type === 'chunk') {
+                            // 處理串流的回應塊
+                            let aiMessage = messageContainer.querySelector('.ai-message:last-child');
+                            
+                            if (!aiMessage || aiMessage.dataset.complete === 'true') {
+                                // 建立新的AI消息元素
+                                aiMessage = document.createElement('div');
+                                aiMessage.className = 'message ai-message';
+                                aiMessage.dataset.complete = 'false';
+                                messageContainer.appendChild(aiMessage);
+                            }
+                            
+                            // 附加新的文本
+                            aiMessage.textContent += data.content;
+                        }
+                        
+                        // 滾動到底部
+                        messageContainer.scrollTop = messageContainer.scrollHeight;
+                    }
+                }
+            });
+        });
+
+        // 提交表單時顯示使用者消息並開始監聽SSE
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userInput = document.getElementById('user-input');
+            const messageContainer = document.querySelector('.message-container');
+            
+            // 建立並顯示使用者消息
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.textContent = userInput.value;
+            messageContainer.appendChild(userMessage);
+            
+            // 顯示正在輸入指示器
+            document.querySelector('.typing-indicator').style.display = 'block';
+            
+            // 啟動SSE連接
+            const model = document.getElementById('model-dropdown').value;
+            const eventSource = new EventSource(`/sse-chat?message=${encodeURIComponent(userInput.value)}&model=${encodeURIComponent(model)}`);
+            
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'complete') {
+                    // 完成時關閉連接
+                    eventSource.close();
+                    document.querySelector('.typing-indicator').style.display = 'none';
+                } else if (data.type === 'chunk') {
+                    // 處理串流的回應塊
+                    let aiMessage = messageContainer.querySelector('.ai-message:last-child');
+                    
+                    if (!aiMessage || aiMessage.dataset.complete === 'true') {
+                        // 建立新的AI消息元素
+                        aiMessage = document.createElement('div');
+                        aiMessage.className = 'message ai-message';
+                        aiMessage.dataset.complete = 'false';
+                        messageContainer.appendChild(aiMessage);
+                    }
+                    
+                    // 附加新的文本
+                    aiMessage.textContent += data.content;
+                }
+                
+                // 滾動到底部
+                messageContainer.scrollTop = messageContainer.scrollHeight;
+            };
+            
+            // 清空輸入區
+            userInput.value = '';
+        });
+    </script>
+</body>
+</html>

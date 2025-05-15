@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Go MCP HTMX Client</title>
+    <link rel="stylesheet" href="/aiui/css/main.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+     <script src="https://unpkg.com/htmx-ext-ws@2.0.2" integrity="sha384-vuKxTKv5TX/b3lLzDKP2U363sOAoRo5wSvzzc3LJsbaQRSBSS+3rKKHcOx5J8doU" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>Go MCP HTMX MUD Client</h1>
+
+        <div id="connection-controls">
+            <form hx-post="/connect" hx-target="#connection-status" hx-swap="innerHTML">
+                <label for="host">Host:</label>
+                <input type="text" id="host" name="host" value="mud.example.com" required>
+                <label for="port">Port:</label>
+                <input type="number" id="port" name="port" value="4000" required>
+                <button type="submit">Connect</button>
+            </form>
+            <form hx-post="/disconnect" hx-target="#connection-status" hx-swap="innerHTML" style="margin-top: 5px;">
+                 <button type="submit">Disconnect</button>
+            </form>
+        </div>
+        <div id="connection-status" class="info">Not connected.</div>
+
+        <div id="mud-output-container">
+            <h2>MUD Output</h2>
+            <!-- 
+                hx-ext="ws" enables WebSocket extension for this element
+                ws-connect="/ws" tells HTMX to connect to this WebSocket URL
+                The Go backend will send messages to this WebSocket.
+                HTMX will append received messages into this div.
+            -->
+            <div id="mud-output" hx-ext="ws" ws-connect="/ws">
+                <!-- MUD output will be injected here by HTMX from WebSocket messages -->
+                <div>Welcome! Connect to a MUD to begin.</div>
+            </div>
+        </div>
+
+        <form id="command-form" 
+              hx-post="/send" 
+              hx-target="#command-input" 
+              hx-swap="outerHTML"
+              _="on htmx:afterRequest reset() me"> 
+              <!-- The _="on..." part uses Hyperscript to clear the form AFTER the request.
+                   Alternatively, the server sends back an empty input field.
+                   The current Go code sends back an empty input field, so Hyperscript isn't strictly needed here
+                   but is a common pattern for client-side form clearing with HTMX. -->
+            <input type="text" id="command-input" name="command" class="command-input" placeholder="Enter command..." autofocus autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        // Optional: Auto-scroll the MUD output
+        const mudOutput = document.getElementById('mud-output');
+        const observer = new MutationObserver(() => {
+            mudOutput.scrollTop = mudOutput.scrollHeight;
+        });
+        observer.observe(mudOutput, { childList: true, subtree: true });
+
+        // Focus command input after successful connection
+        // We can use HTMX events for this too
+        document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+            // Check if the connection was successful from the /connect endpoint
+            const connectionStatus = document.getElementById('connection-status');
+            if (connectionStatus && connectionStatus.textContent.includes("Connected to")) {
+                const commandInput = document.getElementById('command-input');
+                if (commandInput) {
+                    commandInput.focus();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

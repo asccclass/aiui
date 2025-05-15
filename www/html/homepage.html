@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP HTMX Client</title>
+    <link rel="stylesheet" href="/aiui/css/homepage.css">
+    <script src="https://unpkg.com/htmx.org@1.9.12"
+            integrity="sha384-ujb1lZYygJmzgSwoxRggbCHcjc0rB2XoQrxeTUQyR0HVATC_cYBTAIvdSoXYHDNU"
+            crossorigin="anonymous"></script>
+</head>
+<body>
+    <h1>MCP HTMX Client</h1>
+    <!-- WebSocket connection container -->
+    <!-- hx-swap-oob="beforeend:#messages" means any message received over WS not matching another OOB swap
+         will be appended to the #messages div -->
+    <div id="websocket-container" hx-ext="ws" ws-connect="/ws">
+        <div id="connection-status">Connecting...</div>
+        <div id="initial-message"></div> <!-- Server can target this with OOB swap -->
+
+        <div id="messages" class="output-area">
+            <!-- Server messages will be appended here by HTMX -->
+        </div>
+
+        <hr>
+        <h2>Send MCP Command</h2>
+        <form id="mcp-form" ws-send>
+            <textarea name="mcp_command" rows="5" placeholder="Enter MCP command(s) here, e.g.,
+#$#mcp version: 2.1 to: 2.1
+#$#mcp-negotiate-can package: my-app-echo min-version: 1.0 max-version: 1.0
+#$#mcp-negotiate-end
+#$#my-app-echo message: "Hello from HTMX""></textarea>
+            <button type="submit">Send Command</button>
+        </form>
+
+        <h3>Quick Actions</h3>
+        <div id="quick-actions">
+            <button hx-on:click="sendMCPNegotiation()">Negotiate MCP 2.1 & my-app-echo</button>
+            <button hx-on:click="sendEchoCommand()">Send Echo 'Test message'</button>
+        </div>
+    </div>
+
+    <script>
+        // Handle WebSocket connection status for display
+        document.body.addEventListener('htmx:wsOpen', function(evt) {
+            document.getElementById('connection-status').innerText = 'WebSocket Connected!';
+        });
+        document.body.addEventListener('htmx:wsClose', function(evt) {
+            document.getElementById('connection-status').innerText = 'WebSocket Disconnected.';
+            // You might want to attempt reconnection here or inform the user
+        });
+        document.body.addEventListener('htmx:wsError', function(evt) {
+            document.getElementById('connection-status').innerText = 'WebSocket Error!';
+            console.error("WebSocket Error:", evt);
+        });
+
+        // Function to send pre-defined negotiation messages
+        function sendMCPNegotiation() {
+            const wsContainer = document.getElementById('websocket-container');
+            const negotiationCommands = [
+                "#$#mcp version: 2.1 to: 2.1",
+                "#$#mcp-negotiate-can package: my-app-echo min-version: 1.0 max-version: 1.0",
+                "#$#mcp-negotiate-end"
+            ].join("\n");
+            
+            // Manually trigger a send if ws-send is on a form
+            // A bit hacky, ideally HTMX would have a simpler API for imperative ws sends
+            // For now, we can simulate a form submission or temporarily set textarea value
+            const mcpForm = document.getElementById('mcp-form');
+            const mcpTextarea = mcpForm.querySelector('textarea[name="mcp_command"]');
+            const originalValue = mcpTextarea.value;
+            mcpTextarea.value = negotiationCommands;
+            
+            // Trigger HTMX processing for ws-send on the form
+            htmx.trigger(mcpForm, "submit"); 
+            // Or if ws-send was on the button directly, we could do:
+            // htmx.trigger(evt.target, 'click'); // where evt.target is the button
+            // but ws-send on form is more common for inputs
+
+            // Restore original value if needed, or clear
+            mcpTextarea.value = originalValue; // or mcpTextarea.value = '';
+            
+            // Log to messages area
+            logToMessages(`CLIENT: Sent Negotiation:\n${negotiationCommands}`);
+        }
+
+        function sendEchoCommand() {
+            const wsContainer = document.getElementById('websocket-container');
+            const echoCommand = '#$#my-app-echo message: "Test message from button"';
+            
+            const mcpForm = document.getElementById('mcp-form');
+            const mcpTextarea = mcpForm.querySelector('textarea[name="mcp_command"]');
+            const originalValue = mcpTextarea.value;
+            mcpTextarea.value = echoCommand;
+            
+            htmx.trigger(mcpForm, "submit");
+
+            mcpTextarea.value = originalValue;
+            logToMessages(`CLIENT: Sent Echo Command:\n${echoCommand}`);
+        }
+
+        function logToMessages(message) {
+            const messagesDiv = document.getElementById('messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'client-message'; // Style client messages differently
+            msgDiv.textContent = message; // Use textContent for security
+            messagesDiv.appendChild(msgDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Scroll to bottom
+        }
+
+        // HTMX by default will put received messages into the body if no target is found or OOB swap.
+        // To ensure messages go into our #messages div, the server sends HTML fragments
+        // that can use hx-swap-oob="beforeend:#messages".
+        // The Go server already wraps messages in <div>, so they will be appended to #messages
+        // due to the fallback behavior of `hx-swap-oob="beforeend:#messages"` on the websocket-container,
+        // or if the server explicitly targets #messages.
+        // Our Go server sends `<div class="server-message">...</div>` which HTMX inserts.
+        // The following listener is more for debugging or if server sent plain text.
+        htmx.on('#websocket-container', 'htmx:wsAfterMessage', function(evt) {
+            console.log("HTMX received WS message:", evt.detail.message);
+            const messagesDiv = document.getElementById('messages');
+            // Scroll to bottom after HTMX has processed the message and potentially added to DOM
+            setTimeout(() => {
+                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 0);
+        });
+
+
+    </script>
+</body>
+</html>

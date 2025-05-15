@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP HTMX Client</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="/aiui/css/sse.css">
+</head>
+<body>
+    <h1>MCP HTMX Client</h1>
+
+    <div id="connection-status">Connecting...</div>
+
+    <div id="mcp-client"
+         hx-ext="sse"
+         sse-connect="/mcpsrv/sse">
+
+        <div id="messages-log" sse-swap="mcp_message" hx-swap="beforeend">
+            <!-- SSE mcp_message events will append content here -->
+        </div>
+        <div id="handshake-log" sse-swap="mcp_server_handshake" hx-swap="innerHTML" style="display:none;">
+             <!-- Server's MCP handshake data will appear here, processed by script -->
+        </div>
+        <div id="ping-log" sse-swap="mcp_ping" hx-swap="innerHTML" style="display:none;">
+             <!-- Server's PING data will appear here, processed by script -->
+        </div>
+    </div>
+
+    <div id="controls">
+        <h2>Send Message</h2>
+        <form id="mcpForm" hx-post="/mcp_action" hx-trigger="submit" hx-swap="none">
+            <!-- auth-key will be populated by JavaScript -->
+            <input type="hidden" id="authKeyInput" name="auth-key" value="">
+
+            <div>
+                <label for="messageName">Message Name:</label>
+                <input type="text" id="messageName" name="_MCP_MESSAGE_" value="custom-chat-message" required>
+            </div>
+            <div>
+                <label for="messageData">Data (JSON):</label>
+                <textarea id="messageData" name="data" rows="4" required>{"text": "Hello from HTMX client!"}</textarea>
+            </div>
+            <button type="submit">Send MCP Message</button>
+        </form>
+        <div id="send-status"></div>
+    </div>
+
+    <script>
+        let clientAuthKey = null;
+        let clientMessageCounter = 0;
+
+        // Log all SSE events for debugging
+        document.body.addEventListener('htmx:sseMessage', function(event) {
+            const detail = event.detail;
+            console.log("SSE Received:", "Event:", detail.event, "Data:", detail.data);
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'message system-raw';
+            logEntry.textContent = `RAW SSE [${detail.event}]: ${detail.data}`;
+            document.getElementById('messages-log').appendChild(logEntry);
+            scrollToBottom('messages-log');
+
+
+            if (detail.event === "mcp_server_handshake") {
+                try {
+                    const mcpData = JSON.parse(detail.data);
+                    clientAuthKey = mcpData['auth-key'];
+                    document.getElementById('authKeyInput').value = clientAuthKey;
+                    document.getElementById('connection-status').textContent = `Connected! Auth Key: ${clientAuthKey}`;
+                    
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'message server handshake';
+                    logEntry.innerHTML = `<strong>SERVER HANDSHAKE:</strong> Version: ${mcpData.data.version}, Supports: ${mcpData.data.supports_from.join(', ')}`;
+                    document.getElementById('messages-log').appendChild(logEntry);
+                    scrollToBottom('messages-log');
+
+                    // --- MCP Handshake Part 2: Client sends its MCP packet ---
+                    sendClientMCPHandshake();
+
+                } catch (e) {
+                    console.error("Error parsing server handshake:", e, detail.data);
+                    document.getElementById('connection-status').textContent = "Error processing handshake.";
+                }
+            } else if (detail.event === "mcp_message") {
+                // HTMX sse-swap handles the main display if configured, but we can also log/process here
+                try {
+                    const msgData = JSON.parse(detail.data);
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'message server';
+                    logEntry.innerHTML = `<strong>SERVER (${msgData._MCP_MESSAGE_}):</strong> ${JSON.stringify(msgData.data)}`;
+                    document.getElementById('messages-log').appendChild(logEntry);
+                    scrollToBottom('messages-log');
+                } catch (e) {
+                    console.error("Error parsing mcp_message:", e, detail.data);
+                }
+            } else if (detail.event === "mcp_ping") {
+                 try {
+                    const pingData = JSON.parse(detail.data);
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'message system';
+                    logEntry.textContent = `SERVER PING received (ID: ${pingData.message_id}).`;
+                    document.getElementById('messages-log').appendChild(logEntry);
+                    scrollToBottom('messages-log');
+                    
+                    // Optionally send dns-com-awns-pong
+                    sendMCPMessage("dns-com-awns-pong", { "in-reply-to": pingData.message_id });
+
+                } catch (e) {
+                    console.error("Error parsing mcp_ping:", e, detail.data);
+                }
+            }
+        });
+
+        document.body.addEventListener('htmx:sseError', function(event) {
+            document.getElementById('connection-status').textContent = "SSE Connection Error. Check console.";
+            console.error("SSE Error:", event);
+        });
+        
+        document.body.addEventListener('htmx:sseOpen', function(event) {
+            document.getElementById('connection-status').textContent = "SSE Connection Opened. Waiting for server handshake...";
+        });
+
+
+        function sendClientMCPHandshake() {
+            if (!clientAuthKey) {
+                console.error("Cannot send client MCP handshake, authKey not set.");
+                return;
+            }
+            const handshakePayload = {
+                _MCP_MESSAGE_: "mcp",
+                message_id: `client-mcp-${Date.now()}`,
+                "auth-key": clientAuthKey, // Echo back the server's auth key
+                data: {
+                    version: "1.0-simplified",
+                    client_name: "HTMX-MCP-Client",
+                    supports: ["custom-chat-message", "dns-com-awns-pong"] 
+                }
+            };
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'message client handshake';
+            logEntry.innerHTML = `<strong>CLIENT HANDSHAKE:</strong> Sending MCP handshake. Supports: ${handshakePayload.data.supports.join(', ')}`;
+            document.getElementById('messages-log').appendChild(logEntry);
+            scrollToBottom('messages-log');
+
+            fetch('/mcp_action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(handshakePayload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Client MCP handshake response from server:", data);
+                document.getElementById('send-status').textContent = `Client Handshake Sent: ${data.status}`;
+            })
+            .catch(error => {
+                console.error("Error sending client MCP handshake:", error);
+                document.getElementById('send-status').textContent = "Error sending client handshake.";
+            });
+        }
+        
+        // Function to send an arbitrary MCP message
+        function sendMCPMessage(messageName, dataPayload) {
+            if (!clientAuthKey) {
+                alert("Not connected or auth-key not received yet.");
+                return false; // Prevent form submission
+            }
+            clientMessageCounter++;
+            const mcpMessage = {
+                _MCP_MESSAGE_: messageName,
+                message_id: `client-msg-${clientMessageCounter}-${Date.now()}`,
+                "auth-key": clientAuthKey,
+                data: dataPayload
+            };
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'message client';
+            logEntry.innerHTML = `<strong>CLIENT (${mcpMessage._MCP_MESSAGE_}):</strong> ${JSON.stringify(mcpMessage.data)}`;
+            document.getElementById('messages-log').appendChild(logEntry);
+            scrollToBottom('messages-log');
+
+            fetch('/mcp_action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(mcpMessage)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => { throw new Error(`Server error: ${response.status} ${text}`) });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('MCP Action Response:', data);
+                document.getElementById('send-status').textContent = `Sent ${messageName}: ${data.status || 'OK'}`;
+            })
+            .catch(error => {
+                console.error('Error sending MCP Action:', error);
+                document.getElementById('send-status').textContent = `Error: ${error.message}`;
+            });
+        }
+
+
+        // Override HTMX form submission to use JSON and our sendMCPMessage logic
+        document.getElementById('mcpForm').addEventListener('htmx:configRequest', function(evt) {
+            evt.preventDefault(); // Stop HTMX's default POST
+
+            const form = evt.target;
+            const messageName = form.elements['_MCP_MESSAGE_'].value;
+            const dataJsonString = form.elements['data'].value;
+
+            let dataPayload;
+            try {
+                dataPayload = JSON.parse(dataJsonString);
+            } catch (e) {
+                alert("Invalid JSON in data field: " + e.message);
+                document.getElementById('send-status').textContent = "Error: Invalid JSON in data field.";
+                return;
+            }
+            
+            sendMCPMessage(messageName, dataPayload);
+            form.elements['data'].value = '{"text": ""}'; // Clear for next message
+        });
+
+        function scrollToBottom(elementId) {
+            const element = document.getElementById(elementId);
+            element.scrollTop = element.scrollHeight;
+        }
+
+    </script>
+</body>
+</html>

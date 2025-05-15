@@ -1,0 +1,14 @@
+SystemName=AI工具集
+PORT=80
+ContainerName=ai
+OriginAllowList=https://www.justdrink.com.tw/ai/
+AllowMethods=POST;GET;PUT;DELETE
+ResponseType=code
+
+DocumentRoot=www/html
+TemplateRoot=www/template/
+UploadFolder=tmp/
+JobsFile=joblists
+
+
+GEMINI_API_KEY=AIzaSyBSEK6MRf5G-wrAbYNwRbDZUrzQ9gbNxbU
