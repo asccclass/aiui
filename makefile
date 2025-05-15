@@ -12,10 +12,14 @@ GOMODULE?=on
 init:
 	GO111MODULE=on go mod download
 
-build: clean
+buildLinux: clean
 	clear
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GO111MODULE=${GOMODULE} go build -tags netgo \
 	-o ${APP}
+
+
+build:
+	go build -o ${APP}.exe
 
 docker: build
 	docker build -t ${ImageName} .
