@@ -313,19 +313,19 @@
                 </div>
             </div>
         </div>
-        <div id="chat-container" class="chat-history">
+        <div id="chat-example" class="chat-history">
             <div class="welcome-container">
                 <h1 class="welcome-title">AI 聊天系統</h1>
                 <div class="examples-container">
-                    <div class="example-card" hx-post="/api/chat/example" hx-vals='{"prompt": "用簡單的語言解釋量子計算"}'>
+                    <div class="example-card" hx-vals='{"prompt": "用簡單的語言解釋量子計算"}'>
                         <h3>用簡單的語言解釋量子計算</h3>
                         <p>解釋複雜的科學概念</p>
                     </div>
-                    <div class="example-card" hx-post="/api/chat/example" hx-vals='{"prompt": "給我寫一個Python的網絡爬蟲程式"}'>
+                    <div class="example-card" hx-vals='{"prompt": "給我寫一個Python的網絡爬蟲程式"}'>
                         <h3>給我寫一個Python的網絡爬蟲程式</h3>
                         <p>幫助編寫程式碼</p>
                     </div>
-                    <div class="example-card" hx-post="/api/chat/example" hx-vals='{"prompt": "創作一個短篇科幻故事"}'>
+                    <div class="example-card" hx-vals='{"prompt": "創作一個短篇科幻故事"}'>
                         <h3>創作一個短篇科幻故事</h3>
                         <p>生成創意內容</p>
                     </div>
@@ -348,6 +348,8 @@
     </div>
 
     <script>
+      const example = document.getElementById('chat-example');
+
 function setupSSEConnection(messageId) {  // SSE連接處理
    const eventSource = new EventSource(`/${messageId}`);
    const messageContent = document.querySelector(`#message-${messageId} .message-content`);
@@ -405,7 +407,6 @@ function setupSSEConnection(messageId) {  // SSE連接處理
                newElements.forEach(element => {
                   const messageId = element.id.replace('message-', '');
                   if(element.classList.contains('ai-message'))  setupSSEConnection(messageId);
-         
                });
             });
 
@@ -422,6 +423,7 @@ function setupSSEConnection(messageId) {  // SSE連接處理
                   const data = JSON.parse(event.data);
                   if(data.type === 'complete') {  // 完成時關閉連接並隱藏指示器
                      eventSource.close();
+                     example.style.display = 'none';  // 隱藏範例區域
                      // typingIndicator.style.display = 'none';
                      if(currentAiMessage) currentAiMessage.dataset.complete = 'true';
                   } else if(data.type === 'chunk') {  // 第一個塊時創建新消息元素
