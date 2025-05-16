@@ -342,7 +342,7 @@
               <input type="file" id="file-input">
               <input type="text" id="message-input" name="message-input" placeholder="輸入您的訊息..." required
                 onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.dispatchEvent(new Event('submit')); }">
-              <button id="send-button" type=""submit">Send message</button>
+              <button id="send-button" type="submit">Send message</button>
            </div>
        </form>
     </div>
@@ -351,7 +351,7 @@
       const example = document.getElementById('chat-example');
 
 function setupSSEConnection(messageId) {  // SSE連接處理
-   const eventSource = new EventSource(`/${messageId}`);
+   const eventSource = new EventSource(`/aiui/${messageId}`);
    const messageContent = document.querySelector(`#message-${messageId} .message-content`);
    console.log("SSE連接已建立，ID:", messageId);
             
@@ -415,7 +415,7 @@ function setupSSEConnection(messageId) {  // SSE連接處理
                e.preventDefault();            
                // 連接到SSE端點
                const selectedModel = document.getElementById('model-dropdown').value;
-               const eventSource = new EventSource(`/sse?message=${encodeURIComponent(messageInput.value)}&model=${encodeURIComponent(selectedModel)}`);
+               const eventSource = new EventSource(`/aiui/sse?message=${encodeURIComponent(messageInput.value)}&model=${encodeURIComponent(selectedModel)}`);
                let currentAiMessage = null;
                addUserMessage(messageInput.value); // 顯示用戶消息
 
