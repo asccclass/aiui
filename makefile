@@ -19,6 +19,7 @@ buildLinux: clean
 
 
 build:
+	cls
 	go build -o ${APP}.exe
 
 docker: build
