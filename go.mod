@@ -5,6 +5,7 @@ go 1.24.1
 require (
 	github.com/asccclass/sherryserver v0.9.9
 	github.com/joho/godotenv v1.5.1
+	github.com/yuin/goldmark v1.7.11
 )
 
 require (
