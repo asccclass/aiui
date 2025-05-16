@@ -277,13 +277,7 @@
         </div>
         <!-- 新增：將下拉選單移到新對話框上方 -->
         <div class="model-select">
-           <select id="model-dropdown">
-              <option value="gpt-4">GPT-4</option>
-              <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-              <option value="claude-3-opus">Claude 3 Opus</option>
-              <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-              <option value="llama-3">Llama 3</option>
-         </select>
+           <select id="model-dropdown" hx-get="/models" hx-trigger="load"></select>
         </div>
         <div class="action-button" hx-post="/new-chat" hx-trigger="click" hx-target="#chat-container" hx-swap="innerHTML">
            <i class="fas fa-plus"></i><span>新對話</span>

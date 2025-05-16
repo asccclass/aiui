@@ -2,31 +2,46 @@ package main
 
 import (
    "os"
-   "io"
+   //"io"
    "fmt"
    "time"
-   "bytes"
+   //"bytes"
    "strings"
-   "strconv"
+   // "strconv"
    "net/http"
    "encoding/json"
-   "path/filepath"
-   "mime/multipart"
+   // "path/filepath"
+   // "mime/multipart"
+   // "github.com/joho/godotenv"
 )
 
-const (
-   ollamaURL = "http://10.109.190.12"
-)
-
-// 模型資訊結構
-type Model struct {
-   Name        string    `json:"name"`
-   Size        int64     `json:"size"`
-   ModifiedAt  time.Time `json:"modified_at"`
-   Digest      string    `json:"digest"`
-   Description string    `json:"description,omitempty"`
+// Details represents the details of a model
+type Details struct {
+	ParentModel       string   `json:"parent_model"`
+	Format            string   `json:"format"`
+	Family            string   `json:"family"`
+	Families          []string `json:"families"`
+	ParameterSize     string   `json:"parameter_size"`
+	QuantizationLevel string   `json:"quantization_level"`
 }
 
+// Model represents a single model's information 模型資訊結構
+type Model struct {
+   Name        string    `json:"name"`
+	Model			string    `json:"model"`
+   ModifiedAt  time.Time `json:"modified_at"`
+   Size        int64     `json:"size"`
+   Digest      string    `json:"digest"`
+	Details		Details   `json:"details"`
+   Description string    `json:"description,omitempty"`
+	SizeGB		string	`json:"size_gb,omitempty"`	// 轉換後的大小
+	ModiTime	string		`json:"modi_time,omitempty"`	// 轉換後的時間
+}
+
+// ModelsWrapper wraps the models array
+type ModelsWrapper struct {
+   Models []Model `json:"models"`
+}
 
 // 生成請求結構
 type GenerateRequest struct {
@@ -85,7 +100,7 @@ func(app *OllamaClient) getModels() ([]Model, error) {
    if resp.StatusCode != http.StatusOK {
       return nil, fmt.Errorf("獲取模型列表失敗，狀態碼: %d", resp.StatusCode)
    }
-   var listResp ListModelsResponse
+   var listResp ModelsWrapper
    if err := json.NewDecoder(resp.Body).Decode(&listResp); err != nil {
       return nil, fmt.Errorf("解析回應失敗: %v", err)
    }
@@ -94,14 +109,65 @@ func(app *OllamaClient) getModels() ([]Model, error) {
 
 // 顯示所有可用模型 <option value="gpt-4">GPT-4</option>
 func(app *OllamaClient) ListModelsFromWeb(w http.ResponseWriter, r *http.Request) {
-   s := ""
-   for i, model := range app.Models {
-      val := strings.ReplaceAll(strngs.ToLower(model.Name), " ", "-")
-      s += fmt.Sprintf("<option value='%s'>%s（%s GB）</option>\n", val, model.Name, model.SizeGB)
+   s := []string{}
+   for _, model := range app.Models {
+      val := strings.ReplaceAll(strings.ToLower(model.Name), " ", "-")
+      s = append(s, fmt.Sprintf("<option value=\"%s\">%s</option>", val, model.Name))
+	}
+	jsonData, err := json.Marshal(s)
+	if err != nil {
+		fmt.Println("序列化 JSON 失敗:", err)
+		return	
+	}
+	// 回傳用戶消息，實際處理會通過SSE進行
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)	
+   w.Write(jsonData)	// 將 JSON 數據寫入響應
+}
+
+
+func(app *OllamaClient) AddRouter(router *http.ServeMux) {
+   router.HandleFunc("GET /models", app.ListModelsFromWeb)                // 列出工具列表
+   // router.HandleFunc("/update/overwrite/{type}", app.OverWriteDataFromWeb)      // 更新檔案內容
+}
+
+func NewOllamaClient()(*OllamaClient) {
+   app := &OllamaClient{
+      URL: os.Getenv("OllamaUrl"),
    }
-   // 回傳用戶消息，實際處理會通過SSE進行
-   w.Header().Set("Content-Type", "text/html")
-   fmt.Fprintf(w, s)
+   if app.URL == "" {
+      fmt.Printf("未設定 envfile 中的 OllamaUrl 參數")
+      return nil
+   }
+	var err error
+   app.Models, err = app.getModels()
+   if err != nil {
+      fmt.Printf("獲取模型列表失敗: %s", err.Error())
+      return nil
+   }
+
+   for i, model := range app.Models {
+      size := float64(model.Size) / (1024 * 1024 * 1024)
+      app.Models[i].SizeGB = fmt.Sprintf("%.2f GB", size)
+      app.Models[i].ModiTime = model.ModifiedAt.Format("2006-01-02 15:04:05")
+   }
+   return app
+}
+
+/*
+func main() {
+   currentDir, err := os.Getwd()
+   if err != nil {
+      fmt.Println(err.Error())
+      return
+   }
+   if err := godotenv.Load(currentDir + "/envfile"); err != nil {
+      fmt.Println(err.Error())
+      return
+   }
+   if olm := NewOllamaClient(); olm != nil {
+		olm.ListModelsFromWeb()
+	}
 }
 
 // 產生回應（非串流模式）
@@ -181,30 +247,4 @@ func handleFileUpload() []string {
    	}
    }
 }
-
-func(app *OllamaClient) AddRouter(router *http.ServeMux) {
-   router.HandleFunc("GET /models", app.ListModelsFromWeb)                // 列出工具列表
-   // router.HandleFunc("/update/overwrite/{type}", app.OverWriteDataFromWeb)      // 更新檔案內容
-}
-
-func NewOllamaClient()(*OllamaClient) {
-   app := &OllamaClient{
-      URL: os.Getenv("OllamaUrl"),
-   }
-   if app.URL == "" {
-      fmt.Printf("未設定 envfile 中的 OllamaUrl 參數")
-      return nil
-   }
-   app.Models, err := app.getModels()
-   if err != nil {
-      fmt.Printf("獲取模型列表失敗: %s", err.Error())
-      return nil
-   }
-
-   for i, model := range app.Models {
-      size := float64(model.Size) / (1024 * 1024 * 1024)
-      app.Models[i].SizeGB = fmt.Sprintf("%.2f GB", size)
-      app.Models[i].ModiTime = model.ModifiedAt.Format("2006-01-02 15:04:05")
-   }
-   return app
-}
+*/

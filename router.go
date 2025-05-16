@@ -13,6 +13,13 @@ func NewRouter(srv *SherryServer.Server, documentRoot string)(*http.ServeMux) {
    staticfileserver := SherryServer.StaticFileServer{documentRoot, "index.html"}
    staticfileserver.AddRouter(router)
 
+   // AI Chat
+   ollam := NewOllamaClient()
+   if ollam == nil { 
+      return nil
+   }
+   ollam.AddRouter(router)
+
    // Input App router
    router.Handle("/new-chat", http.HandlerFunc(handleNewChat))
    router.Handle("/sse", http.HandlerFunc(SSEChat))

@@ -11,6 +11,6 @@ UploadFolder=tmp/
 ExtraPath=aiui/
 JobsFile=joblists
 
-OllamaUrl=
+OllamaUrl=http://10.109.1.10:11434
 
 GEMINI_API_KEY=
