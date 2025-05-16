@@ -1,8 +1,10 @@
 package main
 
 import(
+   "os"
    "fmt"
    "time"
+   // "bytes"
    "net/http"
    "encoding/json"
 )
@@ -14,39 +16,48 @@ type ChatMessage struct {
 }
 
 // 模擬AI回應（實際應用中會調用真實的AI服務）
-func simulateAIResponse(userMessage, model string) []ChatMessage {
+func AIResponse(model, userMessage string) []ChatMessage {
    // 根據不同模型準備不同的回應
-   var response string
-   switch model {
-   case "gpt-3.5":
-	response = fmt.Sprintf("我是GPT-3.5，您說: \"%s\"。我的回應是：這是一個基於GPT-3.5的回應。", userMessage)
-   case "gpt-4":
-	response = fmt.Sprintf("我是GPT-4，您說: \"%s\"。我的回應是：這是一個基於GPT-4的高級回應。", userMessage)
-   case "claude-3":
-	response = fmt.Sprintf("我是Claude-3，您說: \"%s\"。我的回應是：這是一個基於Claude-3的溫暖對話。", userMessage)
-   case "gemini-pro":
-	response = fmt.Sprintf("我是Gemini Pro，您說: \"%s\"。我的回應是：這是一個基於Gemini Pro的創新回應。", userMessage)
-   default:
-	response = fmt.Sprintf("收到: \"%s\"。但我不確定使用哪個AI模型回應您。", userMessage)
-   }
-
-   // 將回應分割成小塊以模擬流式輸出
-   chunks := []ChatMessage{}
-   words := []rune(response)
-   chunkSize := 5 // 每次發送5個字符
-
-   for i := 0; i < len(words); i += chunkSize {
-      end := i + chunkSize
-      if end > len(words) {
-         end = len(words)
+   response := ""
+   var err error
+   if os.Getenv("OllamaUrl") != "" {
+      ola := AIs["Ollama"].(*OllamaClient)
+      response, err = ola.Ask(model, userMessage, nil)
+      if err != nil {
+         response = "抱歉，我無法處理您的請求。(" + err.Error() + ")"
       }
-      chunk := string(words[i:end])
+   }
+  
+   chunks := []ChatMessage{}
+   if os.Getenv("Stream") == "true" {   // 將回應分割成小塊以模擬流式輸出
+      words := []rune(response)
+      chunkSize := 5 // 每次發送5個字符
+
+      for i := 0; i < len(words); i += chunkSize {
+         end := i + chunkSize
+         if end > len(words) {
+            end = len(words)
+         }
+         chunk := string(words[i:end])
+         chunks = append(chunks, ChatMessage{
+            Type:    "chunk",
+            Content: chunk,
+         })
+      }
+   } else {  // 如果不需要流式輸出，則直接返回完整的回應
+      /*
+      s, err := MarkdownToHTML(response)
+      if err != nil {
+         s = response   
+      }
+         */
+
       chunks = append(chunks, ChatMessage{
          Type:    "chunk",
-         Content: chunk,
+         Content: response,
       })
    }
-
+   fmt.Printf("模型: %s，使用者消息: %s，AI回應：%s\n", model, userMessage, response)
    return chunks
 }
 
@@ -65,7 +76,6 @@ func SSEChat(w http.ResponseWriter, r *http.Request) {
       return
    }
 
-   // fmt.Printf("收到消息: %s，使用模型: %s\n", message, model)
 
    // 創建SSE刷新器
    flusher, ok := w.(http.Flusher)
@@ -74,7 +84,9 @@ func SSEChat(w http.ResponseWriter, r *http.Request) {
       return
    }
    // 模擬AI回應模式
-   responses := simulateAIResponse(message, model)
+   responses := AIResponse(model, message)
+
+   // fmt.Printf("收到消息: %s，使用模型: %s，AI回應：%s\n", message, model, responses)
 
    // 逐步發送回應片段
    for _, chunk := range responses {      

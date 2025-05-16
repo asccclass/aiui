@@ -2,6 +2,7 @@
 package main
 
 import(
+   "os"
    "net/http"
    "github.com/asccclass/sherryserver"
 )
@@ -13,12 +14,14 @@ func NewRouter(srv *SherryServer.Server, documentRoot string)(*http.ServeMux) {
    staticfileserver := SherryServer.StaticFileServer{documentRoot, "index.html"}
    staticfileserver.AddRouter(router)
 
-   // AI Chat
-   ollam := NewOllamaClient()
-   if ollam == nil { 
-      return nil
+   if os.Getenv("OllamaUrl") != "" { // AI Chat
+      ollam := NewOllamaClient()
+      if ollam == nil { 
+         return nil
+      }
+      AIs["Ollama"] = ollam
+      ollam.AddRouter(router)
    }
-   ollam.AddRouter(router)
 
    // Input App router
    router.Handle("/new-chat", http.HandlerFunc(handleNewChat))

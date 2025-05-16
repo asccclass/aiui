@@ -12,5 +12,6 @@ ExtraPath=aiui/
 JobsFile=joblists
 
 OllamaUrl=http://10.109.1.10:11434
+Stream=false
 
 GEMINI_API_KEY=

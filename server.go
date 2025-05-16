@@ -7,6 +7,8 @@ import (
    "github.com/asccclass/sherryserver"
 )
 
+var AIs map[string]interface{}
+
 func main() {
    currentDir, err := os.Getwd()
    if err != nil {
@@ -34,6 +36,7 @@ func main() {
    if err != nil {
       panic(err)
    }
+   AIs = make(map[string]interface{})
    router := NewRouter(server, documentRoot)
    if router == nil {
       fmt.Println("router return nil")

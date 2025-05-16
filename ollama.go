@@ -5,7 +5,7 @@ import (
    //"io"
    "fmt"
    "time"
-   //"bytes"
+   "bytes"
    "strings"
    // "strconv"
    "net/http"
@@ -43,19 +43,6 @@ type ModelsWrapper struct {
    Models []Model `json:"models"`
 }
 
-// 生成請求結構
-type GenerateRequest struct {
-   Model    string   `json:"model"`
-   Prompt   string   `json:"prompt"`
-   System   string   `json:"system,omitempty"`
-   Format   string   `json:"format,omitempty"`
-   Stream   bool     `json:"stream,omitempty"`
-   Options  Options  `json:"options,omitempty"`
-   Images   []string `json:"images,omitempty"`
-   Context  []int    `json:"context,omitempty"`
-   Template string   `json:"template,omitempty"`
-}
-
 // 生成選項結構
 type Options struct {
    Temperature      float64 `json:"temperature,omitempty"`
@@ -76,13 +63,40 @@ type Options struct {
 type GenerateResponse struct {
    Model              string    `json:"model"`
    CreatedAt          time.Time `json:"created_at"`
-   Response           string    `json:"response"`
+   Message            Message    `json:"message"`
+	DoneReason         string    `json:"done_reason"`
    Done               bool      `json:"done"`
-   Context            []int     `json:"context,omitempty"`
    TotalDuration      int64     `json:"total_duration,omitempty"`
    LoadDuration       int64     `json:"load_duration,omitempty"`
+   PromptEvalCount    int64     `json:"prompt_eval_count,omitempty"`
    PromptEvalDuration int64     `json:"prompt_eval_duration,omitempty"`
+   EvalCount          int64     `json:"eval_count,omitempty"`
    EvalDuration       int64     `json:"eval_duration,omitempty"`
+}
+
+type Message struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+
+// 生成請求結構
+type GenerateRequest struct {
+   Model    string   	`json:"model"`
+   Messages   []Message   `json:"messages"`
+   System   string   	`json:"system,omitempty"`
+   Format   string   	`json:"format,omitempty"`
+   Stream   bool     	`json:"stream"`
+   Options  Options  	`json:"options,omitempty"`
+   Images   []string 	`json:"images,omitempty"`
+   Context  []int    	`json:"context,omitempty"`
+   Template string   	`json:"template,omitempty"`
+}
+
+// 定義請求結構
+type RequestPayload struct {
+	Message string `json:"message"` // 客戶端發送的訊息
+	UserID  string `json:"user_id"` // 可選：用於標識用戶
 }
 
 type OllamaClient struct {
@@ -125,10 +139,61 @@ func(app *OllamaClient) ListModelsFromWeb(w http.ResponseWriter, r *http.Request
    w.Write(jsonData)	// 將 JSON 數據寫入響應
 }
 
+// 產生回應（非串流模式）
+func(app *OllamaClient) Ask(modelName, prompt string, files []string) (string, error) {
+   reqBody := GenerateRequest {
+      Model:  modelName,
+		Messages: []Message{},
+      Stream: false,
+   }
+
+	reqBody.Messages = append(reqBody.Messages, Message{Role: "user", Content: prompt})
+/*
+   // 如果有上傳文件，將文件內容添加到提示
+   if len(files) > 0 {
+   	var fileContents []string
+   	for _, file := range files {
+   		content, err := os.ReadFile(file)
+   		if err != nil {
+   			return "", fmt.Errorf("讀取文件 %s 失敗: %v", file, err)
+   		}
+   		fileContents = append(fileContents, fmt.Sprintf("\n文件 '%s' 內容:\n%s", filepath.Base(file), string(content)))
+   	}
+
+   	// 將文件內容附加到提示
+   	if len(fileContents) > 0 {
+   		reqBody.Prompt += "\n\n以下是相關文件內容，請參考這些內容回答我的問題:" + strings.Join(fileContents, "\n\n")
+   	}
+   }
+		*/
+
+   // 將請求轉為 JSON
+   jsonData, err := json.Marshal(reqBody)
+   if err != nil {
+      return "", fmt.Errorf("序列化請求失敗: %v", err)
+   }
+
+   // 發送請求
+   resp, err := http.Post(app.URL+"/api/chat", "application/json", bytes.NewBuffer(jsonData))
+   if err != nil {
+   	return "", fmt.Errorf("發送請求失敗: %v", err)
+   }
+   defer resp.Body.Close()
+
+   if resp.StatusCode != http.StatusOK {
+   	return "", fmt.Errorf("%s生成回應失敗，狀態碼: %d", app.URL,resp.StatusCode)
+   }
+
+   // 解析回應
+   var genResp GenerateResponse
+   if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
+   	return "", fmt.Errorf("解析回應失敗: %v", err)
+   }
+   return genResp.Message.Content, nil
+}
 
 func(app *OllamaClient) AddRouter(router *http.ServeMux) {
    router.HandleFunc("GET /models", app.ListModelsFromWeb)                // 列出工具列表
-   // router.HandleFunc("/update/overwrite/{type}", app.OverWriteDataFromWeb)      // 更新檔案內容
 }
 
 func NewOllamaClient()(*OllamaClient) {
@@ -168,57 +233,6 @@ func main() {
    if olm := NewOllamaClient(); olm != nil {
 		olm.ListModelsFromWeb()
 	}
-}
-
-// 產生回應（非串流模式）
-func generateResponse(modelName, prompt string, files []string) (string, error) {
-   reqBody := GenerateRequest{
-      Model:  modelName,
-      Prompt: prompt,
-      Stream: false,
-   }
-
-   // 如果有上傳文件，將文件內容添加到提示
-   if len(files) > 0 {
-   	var fileContents []string
-   	for _, file := range files {
-   		content, err := os.ReadFile(file)
-   		if err != nil {
-   			return "", fmt.Errorf("讀取文件 %s 失敗: %v", file, err)
-   		}
-   		fileContents = append(fileContents, fmt.Sprintf("\n文件 '%s' 內容:\n%s", filepath.Base(file), string(content)))
-   	}
-
-   	// 將文件內容附加到提示
-   	if len(fileContents) > 0 {
-   		reqBody.Prompt += "\n\n以下是相關文件內容，請參考這些內容回答我的問題:" + strings.Join(fileContents, "\n\n")
-   	}
-   }
-
-   // 將請求轉為 JSON
-   jsonData, err := json.Marshal(reqBody)
-   if err != nil {
-      return "", fmt.Errorf("序列化請求失敗: %v", err)
-   }
-
-   // 發送請求
-   resp, err := http.Post(ollamaURL+"/api/generate", "application/json", bytes.NewBuffer(jsonData))
-   if err != nil {
-   	return "", fmt.Errorf("發送請求失敗: %v", err)
-   }
-   defer resp.Body.Close()
-
-   if resp.StatusCode != http.StatusOK {
-   	return "", fmt.Errorf("生成回應失敗，狀態碼: %d", resp.StatusCode)
-   }
-
-   // 解析回應
-   var genResp GenerateResponse
-   if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
-   	return "", fmt.Errorf("解析回應失敗: %v", err)
-   }
-
-   return genResp.Response, nil
 }
 
 // 上傳檔案處理
