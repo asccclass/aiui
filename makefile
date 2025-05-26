@@ -1,6 +1,6 @@
 APP?=app
-ImageName?=sherry/aiui
-ContainerName?=aiui
+ImageName?=sherry/mcphost
+ContainerName?=mcphost
 PORT?=11043
 DBServer?=MySQLx
 poolPath?=filepool
@@ -22,7 +22,7 @@ build:
 	cls
 	go build -o ${APP}.exe
 
-docker: build
+docker: buildLinux
 	docker build -t ${ImageName} .
 	rm -f ${APP}
 	docker images
