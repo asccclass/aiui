@@ -82,15 +82,15 @@ type Message struct {
 
 // 生成請求結構
 type GenerateRequest struct {
-   Model    string   	`json:"model"`
-   Messages   []Message   `json:"messages"`
-   System   string   	`json:"system,omitempty"`
-   Format   string   	`json:"format,omitempty"`
-   Stream   bool     	`json:"stream"`
-   Options  Options  	`json:"options,omitempty"`
-   Images   []string 	`json:"images,omitempty"`
-   Context  []int    	`json:"context,omitempty"`
-   Template string   	`json:"template,omitempty"`
+   Model    string	`json:"model"`
+   Messages   []Message `json:"messages"`
+   System   string	`json:"system,omitempty"`
+   Format   string	`json:"format,omitempty"`
+   Stream   bool	`json:"stream"`
+   Options  Options	`json:"options,omitempty"`
+   Images   []string	`json:"images,omitempty"`
+   Context  []int	`json:"context,omitempty"`
+   Template string	`json:"template,omitempty"`
 }
 
 // 定義請求結構
@@ -139,11 +139,34 @@ func(app *OllamaClient) ListModelsFromWeb(w http.ResponseWriter, r *http.Request
    w.Write(jsonData)	// 將 JSON 數據寫入響應
 }
 
-// 產生回應（非串流模式）
+// 送出給Ollams
+func(app *OllamaClient) Send2LLM(jsonData string)(string, error) {
+   resp, err := http.Post(app.URL+"/api/chat", "application/json", bytes.NewBuffer(jsonData)) // 發送請求給 Ollama
+   if err != nil {
+      return "", fmt.Errorf("發送請求失敗: %v", err)
+   }
+   defer resp.Body.Close()
+   if resp.StatusCode != http.StatusOK {
+      return "", fmt.Errorf("%s生成回應失敗，狀態碼: %d", app.URL,resp.StatusCode)
+   }
+   // 解析回應
+   var genResp GenerateResponse
+   if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
+      return "", fmt.Errorf("解析回應失敗: %v", err)
+   }
+   return genResp.Message.Content, nil
+}
+
+// 產生回應（非串流模式） ola.Ask(model, userMessage, nil)
 func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string, error) {
    prompt := strings.TrimSpace(userinput)
    if prompt == "" {
       return "", fmt.Errorf("No data")
+   }
+   // MCP 工具套用
+   toolsResponse, err := RunTools(prompt)  // (map[string]interface, error)
+   if err == nil {
+      fmt.Printf("%v\n", toolsResponse)
    }
    reqBody := GenerateRequest {
       Model:  modelName,
@@ -176,24 +199,7 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
    if err != nil {
       return "", fmt.Errorf("序列化請求失敗: %v", err)
    }
-
-   // 發送請求給 Ollama
-   resp, err := http.Post(app.URL+"/api/chat", "application/json", bytes.NewBuffer(jsonData))
-   if err != nil {
-      return "", fmt.Errorf("發送請求失敗: %v", err)
-   }
-   defer resp.Body.Close()
-
-   if resp.StatusCode != http.StatusOK {
-      return "", fmt.Errorf("%s生成回應失敗，狀態碼: %d", app.URL,resp.StatusCode)
-   }
-
-   // 解析回應
-   var genResp GenerateResponse
-   if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
-      return "", fmt.Errorf("解析回應失敗: %v", err)
-   }
-   return genResp.Message.Content, nil
+   return toolsResponse, nil
 }
 
 func(app *OllamaClient) AddRouter(router *http.ServeMux) {
