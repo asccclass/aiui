@@ -344,6 +344,7 @@
 
     <script>
       const example = document.getElementById('chat-example');
+      const parser = new DOMParser();
 
         document.addEventListener("htmx:afterRequest", function (event) {
             if (event.detail.target.id === "model-dropdown") {
@@ -436,7 +437,11 @@ function setupSSEConnection(messageId) {  // SSE連接處理
                      if(!currentAiMessage) {
                         currentAiMessage = addAIMessage("");  
                      }
-                    currentAiMessage.textContent += marked.parse(data.content);  // 添加新的文本
+                     const doc = parser.parseFromString(marked.parse(data.content), 'text/html');
+                     console.log(doc);
+                     const pElement = doc.body.firstChild;
+                     currentAiMessage.replaceChildren(pElement); // 添加新的文本
+                    // currentAiMessage.textContent += marked.parse(data.content);  // 添加新的文本
                     // currentAiMessage.innerHTML += marked.parse(data.content);  // 添加新的文本 
                   }
                   chatContainer.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 滾動到最新消息  
