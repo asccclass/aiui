@@ -167,6 +167,7 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
    toolsResponse, err := RunTools(prompt)  // (map[string]interface, error)
    if err == nil {
       fmt.Printf("%v\n", toolsResponse)
+      // return toolsResponse, nil
    }
    reqBody := GenerateRequest {
       Model:  modelName,
@@ -195,11 +196,11 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
 		*/
 
    // 將請求轉為 JSON
-   jsonData, err := json.Marshal(reqBody)
+   jData, err := json.Marshal(reqBody)
    if err != nil {
       return "", fmt.Errorf("序列化請求失敗: %v", err)
    }
-   return toolsResponse, nil
+   return jData, nil
 }
 
 func(app *OllamaClient) AddRouter(router *http.ServeMux) {
