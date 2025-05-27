@@ -1,12 +1,10 @@
 package main
 
 import (
-   "os"
+   // "os"
    "fmt"
-   "time"
-   "bytes"
+   // "time"
    "strings"
-   "net/http"
    "encoding/json"
 )
 
@@ -32,12 +30,13 @@ func parseIntent(userInput string) (map[string]interface{}, error) {
 
 請只回應 JSON，不要其他文字。`, userInput)
 
-
-   Send2LLM(jsonData string)(string, error)
-
-   response, err := c.queryOllama(prompt)
-   if err != nil {
-      return nil, fmt.Errorf("query ollama for intent: %w", err)
+   response := ""
+   var err error
+   if AIs["ollama"] != nil {
+      response, err := AIs["Ollama"].(Ollama).Send2LLM(prompt)  // (string, error) 
+      if err != nil {
+         return nil, fmt.Errorf("query ollama for intent: %s", err.Error())
+      }
    }
    // 清理回應，只保留 JSON 部分
    response = strings.TrimSpace(response)
@@ -48,7 +47,7 @@ func parseIntent(userInput string) (map[string]interface{}, error) {
    }
 
    var intent map[string]interface{}
-   if err := json.Unmarshal([]byte(response), &intent); err != nil { // 如果 JSON 解析失敗，預設為一般對話
+   if err = json.Unmarshal([]byte(response), &intent); err != nil { // 如果 JSON 解析失敗，預設為一般對話
       return map[string]interface{}{
          "is_todo_related": false,
          "action":          "general_chat",

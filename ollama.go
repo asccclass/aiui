@@ -141,7 +141,7 @@ func(app *OllamaClient) ListModelsFromWeb(w http.ResponseWriter, r *http.Request
 
 // 送出給Ollams
 func(app *OllamaClient) Send2LLM(jsonData string)(string, error) {
-   resp, err := http.Post(app.URL+"/api/chat", "application/json", bytes.NewBuffer(jsonData)) // 發送請求給 Ollama
+   resp, err := http.Post(app.URL+"/api/chat", "application/json", bytes.NewBuffer([]byte(jsonData))) // 發送請求給 Ollama
    if err != nil {
       return "", fmt.Errorf("發送請求失敗: %v", err)
    }
@@ -166,15 +166,13 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
    // MCP 工具套用
    toolsResponse, err := RunTools(prompt)  // (map[string]interface, error)
    if err == nil {
-      fmt.Printf("%v\n", toolsResponse)
-      // return toolsResponse, nil
+      return "", nil
    }
    reqBody := GenerateRequest {
       Model:  modelName,
       Messages: []Message{},
       Stream: false,
    }
-
    reqBody.Messages = append(reqBody.Messages, Message{Role: "user", Content: prompt})
 /*
    // 如果有上傳文件，將文件內容添加到提示
@@ -200,7 +198,7 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
    if err != nil {
       return "", fmt.Errorf("序列化請求失敗: %v", err)
    }
-   return jData, nil
+   return string(jData), nil
 }
 
 func(app *OllamaClient) AddRouter(router *http.ServeMux) {
