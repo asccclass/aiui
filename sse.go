@@ -15,7 +15,7 @@ type ChatMessage struct {
    Content string `json:"content"`
 }
 
-// 模擬AI回應（實際應用中會調用真實的AI服務）
+// AI回應（TODO: 需要增加記憶體）
 func AIResponse(model, userMessage string) []ChatMessage {
    // 根據不同模型準備不同的回應
    response := ""
@@ -27,7 +27,6 @@ func AIResponse(model, userMessage string) []ChatMessage {
          response = "抱歉，我無法處理您的請求。(" + err.Error() + ")"
       }
    }
-  
    chunks := []ChatMessage{}
    if os.Getenv("Stream") == "true" {   // 將回應分割成小塊以模擬流式輸出
       words := []rune(response)
