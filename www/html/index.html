@@ -278,9 +278,9 @@
         </div>
         <!-- 新增：將下拉選單移到新對話框上方 -->
         <div class="model-select">
-           <select id="model-dropdown" hx-get="/models" hx-trigger="load" hx-swap="none"></select>
+           <select id="model-dropdown" hx-get="/aiui/models" hx-trigger="load" hx-swap="none"></select>
         </div>
-        <div class="action-button" hx-post="/new-chat" hx-trigger="click" hx-target="#chat-container" hx-swap="innerHTML">
+        <div class="action-button" hx-post="/aiui/new-chat" hx-trigger="click" hx-target="#chat-container" hx-swap="innerHTML">
            <i class="fas fa-plus"></i><span>新對話</span>
         </div>
         <button id="file-import" class="action-button">
@@ -358,7 +358,7 @@
         });
 
 function setupSSEConnection(messageId) {  // SSE連接處理
-   const eventSource = new EventSource(`/${messageId}`);
+   const eventSource = new EventSource(`/aiui/${messageId}`);
    const messageContent = document.querySelector(`#message-${messageId} .message-content`);
    console.log("SSE連接已建立，ID:", messageId);
             
@@ -422,7 +422,7 @@ function setupSSEConnection(messageId) {  // SSE連接處理
                e.preventDefault();            
                // 連接到SSE端點
                const selectedModel = document.getElementById('model-dropdown').value;
-               const eventSource = new EventSource(`/sse?message=${encodeURIComponent(messageInput.value)}&model=${encodeURIComponent(selectedModel)}`);
+               const eventSource = new EventSource(`/aiui/sse?message=${encodeURIComponent(messageInput.value)}&model=${encodeURIComponent(selectedModel)}`);
                let currentAiMessage = null;
                addUserMessage(messageInput.value); // 顯示用戶消息
 

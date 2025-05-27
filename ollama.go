@@ -17,18 +17,18 @@ import (
 
 // Details represents the details of a model
 type Details struct {
-	ParentModel       string   `json:"parent_model"`
-	Format            string   `json:"format"`
-	Family            string   `json:"family"`
-	Families          []string `json:"families"`
-	ParameterSize     string   `json:"parameter_size"`
-	QuantizationLevel string   `json:"quantization_level"`
+   ParentModel       string   `json:"parent_model"`
+   Format            string   `json:"format"`
+   Family            string   `json:"family"`
+   Families          []string `json:"families"`
+   ParameterSize     string   `json:"parameter_size"`
+   QuantizationLevel string   `json:"quantization_level"`
 }
 
 // Model represents a single model's information 模型資訊結構
 type Model struct {
    Name        string    `json:"name"`
-	Model			string    `json:"model"`
+   Model			string    `json:"model"`
    ModifiedAt  time.Time `json:"modified_at"`
    Size        int64     `json:"size"`
    Digest      string    `json:"digest"`
@@ -95,8 +95,8 @@ type GenerateRequest struct {
 
 // 定義請求結構
 type RequestPayload struct {
-	Message string `json:"message"` // 客戶端發送的訊息
-	UserID  string `json:"user_id"` // 可選：用於標識用戶
+   Message string `json:"message"` // 客戶端發送的訊息
+   UserID  string `json:"user_id"` // 可選：用於標識用戶
 }
 
 type OllamaClient struct {
@@ -127,27 +127,31 @@ func(app *OllamaClient) ListModelsFromWeb(w http.ResponseWriter, r *http.Request
    for _, model := range app.Models {
       val := strings.ReplaceAll(strings.ToLower(model.Name), " ", "-")
       s = append(s, fmt.Sprintf("<option value=\"%s\">%s</option>", val, model.Name))
-	}
-	jsonData, err := json.Marshal(s)
-	if err != nil {
-		fmt.Println("序列化 JSON 失敗:", err)
-		return	
-	}
-	// 回傳用戶消息，實際處理會通過SSE進行
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)	
+   }
+   jsonData, err := json.Marshal(s)
+   if err != nil {
+      fmt.Println("序列化 JSON 失敗:", err)
+      return
+   }
+   // 回傳用戶消息，實際處理會通過SSE進行
+   w.Header().Set("Content-Type", "application/json")
+   w.WriteHeader(http.StatusOK)
    w.Write(jsonData)	// 將 JSON 數據寫入響應
 }
 
 // 產生回應（非串流模式）
-func(app *OllamaClient) Ask(modelName, prompt string, files []string) (string, error) {
+func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string, error) {
+   prompt := strings.TrimSpace(userinput)
+   if prompt == "" {
+      return "", fmt.Errorf("No data")
+   }
    reqBody := GenerateRequest {
       Model:  modelName,
-		Messages: []Message{},
+      Messages: []Message{},
       Stream: false,
    }
 
-	reqBody.Messages = append(reqBody.Messages, Message{Role: "user", Content: prompt})
+   reqBody.Messages = append(reqBody.Messages, Message{Role: "user", Content: prompt})
 /*
    // 如果有上傳文件，將文件內容添加到提示
    if len(files) > 0 {
@@ -173,21 +177,21 @@ func(app *OllamaClient) Ask(modelName, prompt string, files []string) (string, e
       return "", fmt.Errorf("序列化請求失敗: %v", err)
    }
 
-   // 發送請求
+   // 發送請求給 Ollama
    resp, err := http.Post(app.URL+"/api/chat", "application/json", bytes.NewBuffer(jsonData))
    if err != nil {
-   	return "", fmt.Errorf("發送請求失敗: %v", err)
+      return "", fmt.Errorf("發送請求失敗: %v", err)
    }
    defer resp.Body.Close()
 
    if resp.StatusCode != http.StatusOK {
-   	return "", fmt.Errorf("%s生成回應失敗，狀態碼: %d", app.URL,resp.StatusCode)
+      return "", fmt.Errorf("%s生成回應失敗，狀態碼: %d", app.URL,resp.StatusCode)
    }
 
    // 解析回應
    var genResp GenerateResponse
    if err := json.NewDecoder(resp.Body).Decode(&genResp); err != nil {
-   	return "", fmt.Errorf("解析回應失敗: %v", err)
+      return "", fmt.Errorf("解析回應失敗: %v", err)
    }
    return genResp.Message.Content, nil
 }
