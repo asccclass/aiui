@@ -29,7 +29,7 @@ func AIResponse(model, userMessage string) []ChatMessage {
    }
   
    chunks := []ChatMessage{}
-   if os.Getenv("Stream") == "true" {   // 將回應分割成小塊以模擬流式輸出
+   if os.Getenv("Stream") == "true" {    // 將回應分割成小塊以模擬流式輸出
       words := []rune(response)
       chunkSize := 5 // 每次發送5個字符
 
@@ -57,7 +57,7 @@ func AIResponse(model, userMessage string) []ChatMessage {
          Content: response,
       })
    }
-   fmt.Printf("模型: %s，使用者消息: %s，AI回應：%s\n", model, userMessage, response)
+   // fmt.Printf("模型: %s，使用者消息: %s，AI回應：%s\n", model, userMessage, response)
    return chunks
 }
 
