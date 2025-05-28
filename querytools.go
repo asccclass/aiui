@@ -9,7 +9,7 @@ import (
 )
 
 // parseIntentWithOllama 使用 Ollama 解析使用者意圖
-func parseIntent(userInput string) (map[string]interface{}, error) {
+func parseIntent(req GenerateRequest, userInput string) (map[string]interface{}, error) {
    prompt := fmt.Sprintf(`你是一個待辦事項助手。請分析以下使用者輸入，判斷是否與待辦事項相關。
 
 使用者輸入："%s"
@@ -32,12 +32,19 @@ func parseIntent(userInput string) (map[string]interface{}, error) {
 
    response := ""
    var err error
-   if AIs["ollama"] != nil {
-      res, err := AIs["Ollama"].(*OllamaClient).Send2LLM(prompt)  // (string, error) 
+   if AIs["Ollama"].(*OllamaClient) != nil {
+      jData, err := AIs["Ollama"].(*OllamaClient).Prompt2String(req, "user", prompt)
+      if err != nil {
+         return nil, fmt.Errorf("prepare prompt for ollama: %s", err.Error())
+      }
+      res, err := AIs["Ollama"].(*OllamaClient).Send2LLM(jData)  // (string, error) 
       if err != nil {
          return nil, fmt.Errorf("query ollama for intent: %s", err.Error())
       }
       response = res
+   } else {
+      fmt.Println("No Ollama client initialized, cannot parse intent")
+      return nil, fmt.Errorf("Not any LLM is initialized")
    }
    // 清理回應，只保留 JSON 部分
    response = strings.TrimSpace(response)
@@ -46,7 +53,6 @@ func parseIntent(userInput string) (map[string]interface{}, error) {
    if start >= 0 && end > start {
       response = response[start:end]
    }
-
    var intent map[string]interface{}
    if err = json.Unmarshal([]byte(response), &intent); err != nil { // 如果 JSON 解析失敗，預設為一般對話
       return map[string]interface{}{
@@ -54,6 +60,6 @@ func parseIntent(userInput string) (map[string]interface{}, error) {
          "action":          "general_chat",
          "parameters":      map[string]interface{}{},
       }, nil
-   }
+   }   
    return intent, nil
 }

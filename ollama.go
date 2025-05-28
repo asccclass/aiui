@@ -141,12 +141,12 @@ func(app *OllamaClient) ListModelsFromWeb(w http.ResponseWriter, r *http.Request
 
 // 送出給Ollams
 func(app *OllamaClient) Send2LLM(jsonData string)(string, error) {
-   resp, err := http.Post(app.URL+"/api/chat", "application/json", bytes.NewBuffer([]byte(jsonData))) // 發送請求給 Ollama
+   resp, err := http.Post(app.URL+"/api/chat", "application/json", bytes.NewBuffer([]byte(jsonData))) // 發送請求給 Ollama   
    if err != nil {
       return "", fmt.Errorf("發送請求失敗: %v", err)
    }
    defer resp.Body.Close()
-   if resp.StatusCode != http.StatusOK {
+   if resp.StatusCode != http.StatusOK { // 如果狀態碼不是 200 OK，則返回錯誤
       return "", fmt.Errorf("%s生成回應失敗，狀態碼: %d", app.URL,resp.StatusCode)
    }
    // 解析回應
@@ -157,23 +157,37 @@ func(app *OllamaClient) Send2LLM(jsonData string)(string, error) {
    return genResp.Message.Content, nil
 }
 
+// 轉換 GenerateRequest 為字串格式
+func(app *OllamaClient) Prompt2String(req GenerateRequest, role, prompt string)(string, error) {
+   req.Messages = append(req.Messages, Message{Role: role, Content: prompt})  // 如果沒有工具套用，則使用原始提示
+   jData, err := json.Marshal(req)  // 將請求轉為 JSON
+   if err != nil {
+      return "", fmt.Errorf("Marshal request failed, 序列化請求失敗: %v", err)
+   }
+   return string(jData), nil
+}
+
 // 產生回應（非串流模式） ola.Ask(model, userMessage, nil)
 func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string, error) {
    prompt := strings.TrimSpace(userinput)
    if prompt == "" {
       return "", fmt.Errorf("No data")
    }
-   // MCP 工具套用
-   toolsResponse, err := RunTools(prompt)  // (map[string]interface, error)
-   if err == nil {
-      return "", nil
-   }
-   reqBody := GenerateRequest {
+   modelName = "phi4:latest"  // 預設模型名稱
+   reqBody := GenerateRequest {  // 初始化
       Model:  modelName,
       Messages: []Message{},
       Stream: false,
    }
-   reqBody.Messages = append(reqBody.Messages, Message{Role: "user", Content: toolsResponse})
+   // MCP 工具套用
+   toolsResponse, err := RunTools(reqBody, prompt)  // (map[string]interface, error)
+   if err == nil {
+      return toolsResponse, nil
+   }
+   jData, err := app.Prompt2String(reqBody, "user", prompt)  // 如果沒有工具套用，則使用原始提示
+   if err != nil {   
+      return "", fmt.Errorf("prepare prompt for ollama: %s", err.Error())
+   }
 /*
    // 如果有上傳文件，將文件內容添加到提示
    if len(files) > 0 {
@@ -191,14 +205,8 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
    		reqBody.Prompt += "\n\n以下是相關文件內容，請參考這些內容回答我的問題:" + strings.Join(fileContents, "\n\n")
    	}
    }
-		*/
-
-   // 將請求轉為 JSON
-   jData, err := json.Marshal(reqBody)
-   if err != nil {
-      return "", fmt.Errorf("序列化請求失敗: %v", err)
-   }
-   return string(jData), nil
+*/
+   return app.Send2LLM(string(jData))
 }
 
 func(app *OllamaClient) AddRouter(router *http.ServeMux) {

@@ -12,8 +12,8 @@ return map[string]interface{} {
 }
 */         
 // 執行 Tools 工具
-func RunTools(p string)(string, error) {
-   s, err := parseIntent(p) // (map[string]interface{}, error)
+func RunTools(req GenerateRequest, prompt string)(string, error) {
+   s, err := parseIntent(req, prompt) // (map[string]interface{}, error)	
    if err != nil {
       return "", err
    }
@@ -29,10 +29,14 @@ func RunTools(p string)(string, error) {
 	if !ok {
 		parameters = make(map[string]interface{})
 	}
-   // 根據動作調用相應的 MCP 工具
-	switch action {
+   
+	switch action {  // 根據動作調用相應的 MCP 工具
 	case "get_all":
-		return callMCPTool("get_all_todos", make(map[string]interface{}))
+		res, err := callMCPTool("get_all_todos", make(map[string]interface{}))
+		if err != nil {
+			fmt.Printf("調用 get_all_todos 工具失敗: %s", err.Error())
+		}
+		return res, nil
 	case "get_by_id":
 		if idVal, exists := parameters["id"]; exists {
 			var id int
@@ -58,7 +62,7 @@ func RunTools(p string)(string, error) {
 		context, hasContext := parameters["context"].(string)
 		user, hasUser := parameters["user"].(string)
 		if !hasContext || context == "" {
-			context =p  // 嘗試從原始輸入中提取內容
+			context = prompt  // 嘗試從原始輸入中提取內容
 		}
 		if !hasUser || user == "" {
 			user = "預設使用者"
@@ -130,5 +134,5 @@ func RunTools(p string)(string, error) {
 	default:  // 未知動作，使用一般對話		
 		return "", fmt.Errorf("未知的動作類型: %s", action)
 	}
-   return p, nil
+   return prompt, nil
 }

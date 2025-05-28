@@ -41,7 +41,6 @@ func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 			Arguments: args,
 		},
 	}
-
 	serverURL := os.Getenv("MCPSrv") // MCP Server URL
 	if serverURL == "" {
 		return "", fmt.Errorf("MCPSrv environment variable not set")
