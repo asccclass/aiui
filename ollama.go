@@ -173,7 +173,7 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
       Messages: []Message{},
       Stream: false,
    }
-   reqBody.Messages = append(reqBody.Messages, Message{Role: "user", Content: prompt})
+   reqBody.Messages = append(reqBody.Messages, Message{Role: "user", Content: toolsResponse})
 /*
    // 如果有上傳文件，將文件內容添加到提示
    if len(files) > 0 {

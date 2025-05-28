@@ -33,10 +33,11 @@ func parseIntent(userInput string) (map[string]interface{}, error) {
    response := ""
    var err error
    if AIs["ollama"] != nil {
-      response, err := AIs["Ollama"].(Ollama).Send2LLM(prompt)  // (string, error) 
+      res, err := AIs["Ollama"].(*OllamaClient).Send2LLM(prompt)  // (string, error) 
       if err != nil {
          return nil, fmt.Errorf("query ollama for intent: %s", err.Error())
       }
+      response = res
    }
    // 清理回應，只保留 JSON 部分
    response = strings.TrimSpace(response)
