@@ -11,6 +11,7 @@ UploadFolder=tmp/
 ExtraPath=aiui/
 JobsFile=joblists
 
+MCPSrv=https://www.justdrink.com.tw/mcpsrv/   # MPC Server URL
 OllamaUrl=http://10.109.1.10:11434
 Stream=false
 
