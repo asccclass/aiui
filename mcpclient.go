@@ -1,16 +1,139 @@
 package main
 
 import(
+	"os"
    "fmt"
+	"sync"
+	"time"
+	"bufio"
    "strconv"
+	"net/http"
+	"crypto/tls"
+	"encoding/json"
 )
-/*
-return map[string]interface{} {
-	"is_todo_related": false,
-	"action":          "general_chat",
-	"parameters":      map[string]interface{}{},
+type MCPError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
-*/         
+
+// MCP Message 結構
+type MCPMessage struct {
+	JSONRPC string      `json:"jsonrpc"`
+	Method  string      `json:"method,omitempty"`
+	Params  interface{} `json:"params,omitempty"`
+	ID      *string     `json:"id,omitempty"`
+	Result  interface{} `json:"result,omitempty"`
+	Error   *MCPError   `json:"error,omitempty"`
+}
+
+// MCP Client 結構
+type MCPClient struct {
+	serverURL    string
+	Path			string // SSE 端點路徑
+	token        string
+	httpClient   *http.Client
+	sseReader    *bufio.Scanner
+	sseResponse  *http.Response
+	msgCounter   int
+	msgMu        sync.Mutex
+	notifications chan MCPMessage
+	isConnected  bool
+	connMu       sync.RWMutex
+}
+
+// 處理來自服務器的 SSE 消息
+func(c *MCPClient) handleSSEMessages() {
+	defer func() {
+		c.connMu.Lock()
+		c.isConnected = false
+		c.connMu.Unlock()
+		if c.sseResponse != nil {
+			c.sseResponse.Body.Close()
+		}
+		fmt.Println("SSE connection closed")
+	}()
+
+	for c.sseReader.Scan() {
+		line := c.sseReader.Text()  // SSE 格式: "data: {json}"
+		if len(line) > 6 && line[:6] == "data: " {
+			jsonData := line[6:]			
+			var msg MCPMessage
+			if err := json.Unmarshal([]byte(jsonData), &msg); err != nil {
+				fmt.Printf("Failed to parse SSE message: %v", err)
+				continue
+			}
+
+			fmt.Printf("Received SSE message: %+v", msg)
+			
+			// 處理通知消息
+			if msg.Method != "" {
+				fmt.Println(msg)
+				//  c.handleNotification(&msg)
+				select {  // 發送到通知通道
+				case c.notifications <- msg:
+				default:
+					fmt.Printf("Notification channel full, dropping message")
+				}
+			}
+		}
+	}
+
+	if err := c.sseReader.Err(); err != nil {
+		fmt.Printf("SSE reader error: %v", err)
+	}
+}
+
+// 連接到 MCP 服務器的 SSE 端點
+func(c *MCPClient) Connect()(error) {
+	if c.token == "" {
+		return fmt.Errorf("authentication required before connecting")
+	}
+	// 建立 SSE 連接
+	sseURL := fmt.Sprintf("%s%ssse?token=%s", c.serverURL, c.Path, c.token)
+	req, err := http.NewRequest("GET", sseURL, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create SSE request: %w", err)
+	}
+	req.Header.Set("Accept", "text/event-stream")
+	req.Header.Set("Cache-Control", "no-cache")
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to connect to SSE: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return fmt.Errorf("SSE connection failed with status: %d", resp.StatusCode)
+	}
+
+	c.sseResponse = resp
+	c.sseReader = bufio.NewScanner(resp.Body)
+	
+	c.connMu.Lock()
+	c.isConnected = true
+	c.connMu.Unlock()
+
+	fmt.Printf("Connected to MCP server via SSE: %s", sseURL)
+	go c.handleSSEMessages()  // 啟動 SSE 消息處理協程
+	return nil
+}
+
+func NewMCPClient() *MCPClient {  // 創建 HTTP 客戶端，跳過 TLS 驗證 (僅用於開發)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},  // true 僅用於演示，生產環境應設為 false
+		// Proxy: http.ProxyFromEnvironment,
+	}
+	
+	return &MCPClient{
+		serverURL:     os.Getenv("MCPSrv"), // MCP 服務器 URL
+		token:         os.Getenv("MCPToken"),     // MCP 認證令牌
+		Path:			   os.Getenv("MCPSrvPath"),  // 默認 MCP 路徑
+		httpClient:    &http.Client{Transport: tr, Timeout: 30 * time.Second},
+		notifications: make(chan MCPMessage, 100),
+	}
+}
+
 // 執行 Tools 工具
 func RunTools(req GenerateRequest, prompt string)(string, error) {
    s, err := parseIntent(req, prompt) // (map[string]interface{}, error)	

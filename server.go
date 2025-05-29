@@ -8,6 +8,7 @@ import (
 )
 
 var AIs map[string]interface{}
+var McpClient *MCPClient       // MCPClient 用於與 MCP Server 進行交互
 
 func main() {
    currentDir, err := os.Getwd()
@@ -40,6 +41,16 @@ func main() {
    router := NewRouter(server, documentRoot)
    if router == nil {
       fmt.Println("router return nil")
+      return
+   }
+   // 啟動 MCP 客戶端
+   McpClient = NewMCPClient()
+   if McpClient == nil {   
+      fmt.Println("MCPClient is nil")
+      return
+   }
+   if err := McpClient.Connect(); err != nil { // 連接到 MCP Server
+      fmt.Printf("連接到 MCP Server 失敗: %s\n", err.Error())
       return
    }
    server.Server.Handler = router  // server.CheckCROS(router)  // 需要自行implement, overwrite 預設的
