@@ -90,6 +90,14 @@ func(c *MCPClient) Connect()(error) {
 	}
 	// 建立 SSE 連接
 	sseURL := fmt.Sprintf("%s%ssse?token=%s", c.serverURL, c.Path, c.token)
+	fmt.Printf("Connecting to MCP server via SSE: %s\n", sseURL)
+	c.connMu.Lock()
+	if c.isConnected {
+		c.connMu.Unlock()
+		return fmt.Errorf("already connected")
+	}
+	c.connMu.Unlock()
+	// 創建 HTTP 請求
 	req, err := http.NewRequest("GET", sseURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create SSE request: %w", err)

@@ -18,6 +18,9 @@ type CallToolRequestParams struct {
 
 // CallToolRequest MCP 工具調用請求
 type CallToolRequest struct {
+	JSONRPC string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
+	ID      string      `json:"id"`
 	Params CallToolRequestParams `json:"params"`
 }
 
@@ -36,8 +39,10 @@ type CallToolResult struct {
 // callMCPTool 調用 MCP Server 的工具
 func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 	request := CallToolRequest{
+		JSONRPC: os.Getenv("JSONRPCVersion"), //JSONRPC Version 版本
+		Method: "tools/call",	// tools/list)列出所有工具名稱  tools/call)調用工具
 		Params: CallToolRequestParams{
-			Name:      toolName,
+			Name:      toolName,   // 工具名稱
 			Arguments: args,
 		},
 	}
@@ -45,14 +50,19 @@ func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 	if serverURL == "" {
 		return "", fmt.Errorf("MCPSrv environment variable not set")
 	}
+	serverPath := os.Getenv("MCPSrvPath") // MCP Server Path
+	if serverPath == "" {
+		serverPath = "/" // Default path if not set
+	}
 	jsonData, err := json.Marshal(request)
 	if err != nil {
 		return "", fmt.Errorf("marshal request: %s", err.Error())
 	}
+	fmt.Println(string(jsonData))  // for debug, remove in production
 	hClient := &http.Client {
 	   Timeout: 60 * time.Second,
 	}
-	resp, err := hClient.Post(serverURL, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := hClient.Post(serverURL + serverPath + "request", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("make request: %s", err.Error())
 	}
@@ -64,6 +74,7 @@ func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("server error (status %d): %s", resp.StatusCode, string(body))
 	}
+	fmt.Println(string(body))  // for debug, remove in production
 	var result CallToolResult
 	if err := json.Unmarshal(body, &result); err != nil {
 		return "", fmt.Errorf("unmarshal response: %s", err.Error())
