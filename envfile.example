@@ -11,7 +11,7 @@ UploadFolder=tmp/
 ExtraPath=aiui/
 JobsFile=joblists
 
-MCPSrv=https://www.justdrink.com.tw/mcpsrv/   # MCP Server URL
+MCPSrv=https://www.justdrink.com.tw   # MCP Server URL
 MCPSrvPath=/mcpsrv/ # MCP Server Path
 MCPToken=
 
