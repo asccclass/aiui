@@ -30,10 +30,16 @@ type CallToolResultContent struct {
 	Text string `json:"text"`
 }
 
-// CallToolResult MCP 工具調用結果
-type CallToolResult struct {
+type CallToolResult struct {	
 	Content []CallToolResultContent `json:"content"`
 	IsError *bool                   `json:"isError,omitempty"`
+}
+
+// CallToolResult MCP 工具調用結果
+type CallToolResults struct {
+	JSONRPC string                  `json:"jsonrpc"`
+	ID      string                  `json:"id"`
+	Result CallToolResult			  `json:"result,omitempty"`
 }
 
 // callMCPTool 調用 MCP Server 的工具
@@ -75,10 +81,11 @@ func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 		return "", fmt.Errorf("server error (status %d): %s", resp.StatusCode, string(body))
 	}
 	fmt.Println(string(body))  // for debug, remove in production
-	var result CallToolResult
-	if err := json.Unmarshal(body, &result); err != nil {
+	var msg CallToolResults
+	if err := json.Unmarshal(body, &msg); err != nil {
 		return "", fmt.Errorf("unmarshal response: %s", err.Error())
 	}
+	result := msg.Result
 	if result.IsError != nil && *result.IsError {
 		return "", fmt.Errorf("tool error: %s", result.Content[0].Text)
 	}

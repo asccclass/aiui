@@ -4,7 +4,7 @@ import(
    "os"
    "fmt"
    "time"
-   // "bytes"
+   "strings"
    "net/http"
    "encoding/json"
 )
@@ -87,14 +87,17 @@ func SSEChat(w http.ResponseWriter, r *http.Request) {
 
    // fmt.Printf("收到消息: %s，使用模型: %s，AI回應：%s\n", message, model, responses)
 
-   // 逐步發送回應片段
+   // 逐步發送回應片段 SSE 格式要求每行以 \n 結尾，而 \r\n 會被視為額外的換行符。
    for _, chunk := range responses {      
       data, err := json.Marshal(chunk)  // 將消息轉換為JSON
       if err != nil {
          fmt.Println("JSON編碼錯誤:", err)
          continue
       }
-      fmt.Fprintf(w, "data: %s\n\n", data)  // 發送SSE格式的消息
+      cleanContent := strings.ReplaceAll(string(data), "\r\n", "\\n")
+      cleanContent = strings.ReplaceAll(cleanContent, "\r", "\\n")
+      cleanContent = strings.ReplaceAll(cleanContent, "\n", "\\n")
+      fmt.Fprintf(w, "data: %s\n\n", cleanContent)  // 發送SSE格式的消息
       flusher.Flush()
       time.Sleep(100 * time.Millisecond)  // 模擬打字延遲
    }
