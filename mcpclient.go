@@ -160,7 +160,7 @@ func RunTools(req GenerateRequest, prompt string)(string, error) {
 	if !ok {
 		parameters = make(map[string]interface{})
 	}
-   
+ 
 	switch action {  // 根據動作調用相應的 MCP 工具
 	case "get_all":
 		res, err := callMCPTool("get_all_todos", make(map[string]interface{}))
@@ -229,7 +229,7 @@ func RunTools(req GenerateRequest, prompt string)(string, error) {
 			default:
 				return "", fmt.Errorf("無效的待辦事項 ID 格式")
 			}
-			args := map[string]interface{}{"id": id}
+			args := map[string]interface{}{"id": fmt.Sprintf("%v", id)}
 	
 			// 添加其他更新參數
 			for key, value := range parameters {

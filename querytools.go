@@ -21,10 +21,10 @@ func parseIntent(req GenerateRequest, userInput string) (map[string]interface{},
 
 如果是待辦事項相關：
 - 查看/列出待辦事項 -> action: "get_all"
-- 查看特定待辦事項 -> action: "get_by_id", parameters: {"id": 數字}
-- 新增/建立待辦事項 -> action: "create", parameters: {"context": "內容", "user": "使用者"}
-- 修改/更新待辦事項 -> action: "update", parameters: {"id": 數字, 其他欄位...}
-- 刪除待辦事項 -> action: "delete", parameters: {"id": 數字}
+- 查看特定待辦事項 -> action: "get_by_id", parameters: {"id": 文字}
+- 新增/建立待辦事項 -> action: "create", parameters: {"context": "內容", "user": "負責者", "isFinished": "0"}
+- 修改/更新待辦事項 -> action: "update", parameters: {"id": 文字, 其他欄位...}
+- 刪除待辦事項 -> action: "delete", parameters: {"id": 文字}
 
 如果不是待辦事項相關 -> action: "general_chat"
 

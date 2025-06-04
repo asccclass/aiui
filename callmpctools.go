@@ -64,10 +64,10 @@ func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("marshal request: %s", err.Error())
 	}
-	fmt.Println(string(jsonData))  // for debug, remove in production
 	hClient := &http.Client {
 	   Timeout: 60 * time.Second,
 	}
+fmt.Println("Send jsonData: ", string(jsonData))
 	resp, err := hClient.Post(serverURL + serverPath + "request", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("make request: %s", err.Error())
@@ -77,10 +77,10 @@ func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read response: %s", err.Error())
 	}
+	fmt.Println("MCPServer 回傳結果:" + string(body))  // MCPServer 回傳結果
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("server error (status %d): %s", resp.StatusCode, string(body))
 	}
-	fmt.Println(string(body))  // for debug, remove in production
 	var msg CallToolResults
 	if err := json.Unmarshal(body, &msg); err != nil {
 		return "", fmt.Errorf("unmarshal response: %s", err.Error())
