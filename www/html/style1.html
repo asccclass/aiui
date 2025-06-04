@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/1.9.12/htmx.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 80vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: messageAppear 0.5s ease-out forwards;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .message.assistant .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 5px;
+        }
+
+        .message-text {
+            line-height: 1.6;
+            word-wrap: break-word;
+        }
+
+        .message-text h1, .message-text h2, .message-text h3 {
+            margin: 10px 0;
+            color: inherit;
+        }
+
+        .message-text p {
+            margin: 8px 0;
+        }
+
+        .message-text code {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+        }
+
+        .message-text pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.9em;
+        }
+
+        .message-text blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 15px;
+            margin: 10px 0;
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        .message-text ul, .message-text ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .message-text li {
+            margin: 5px 0;
+        }
+
+        .message-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin: 10px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-top: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-input-form {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            border-radius: 25px;
+            font-size: 16px;
+            background: white;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 15px 20px;
+            background: white;
+            border-radius: 18px;
+            border-bottom-left-radius: 5px;
+            max-width: 70%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-button {
+            background: rgba(102, 126, 234, 0.1);
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            color: #667eea;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .file-button:hover {
+            background: rgba(102, 126, 234, 0.2);
+            border-color: #667eea;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 90vh;
+                margin: 10px;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+            
+            .chat-input-form {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>🤖 AI 助手</h1>
+            <p>智能對話助手，支援文字與圖片交流</p>
+        </div>
+        
+        <div class="chat-messages" id="chat-messages">
+            <!-- 示例對話 -->
+            <div class="message assistant">
+                <div class="message-content">
+                    <div class="message-text">
+                        <p>你好！我是你的 AI 助手。我可以幫助你回答問題、分析圖片，或是進行各種對話。有什麼我可以協助你的嗎？</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <form class="chat-input-form" 
+                  hx-post="/api/chat" 
+                  hx-target="#chat-messages" 
+                  hx-swap="beforeend"
+                  hx-indicator="#typing-indicator">
+                
+                <input type="file" 
+                       id="file-input" 
+                       class="file-input" 
+                       accept="image/*"
+                       onchange="handleFileSelect(this)">
+                
+                <label for="file-input" class="file-button" title="上傳圖片">
+                    📎
+                </label>
+                
+                <div class="input-wrapper">
+                    <textarea name="message" 
+                              class="chat-input" 
+                              placeholder="輸入你的訊息..."
+                              rows="1"
+                              onkeydown="handleKeyPress(event)"
+                              oninput="autoResize(this)"></textarea>
+                </div>
+                
+                <button type="submit" class="send-button" title="發送">
+                    ➤
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 模擬 API 回應的隱藏區域 -->
+    <div id="typing-indicator" class="htmx-indicator">
+        <div class="message assistant">
+            <div class="typing-indicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 處理鍵盤事件
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                const form = event.target.closest('form');
+                if (event.target.value.trim()) {
+                    // 先添加用戶訊息
+                    addUserMessage(event.target.value.trim());
+                    event.target.value = '';
+                    autoResize(event.target);
+                    
+                    // 模擬 AI 回應
+                    setTimeout(() => {
+                        addAIResponse();
+                    }, 1500);
+                }
+            }
+        }
+
+        // 自動調整文本區域高度
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // 處理文件選擇
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    addUserMessage('', e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // 添加用戶訊息
+        function addUserMessage(text, imageUrl = null) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            
+            let content = '<div class="message-content"><div class="message-text">';
+            if (imageUrl) {
+                content += `<img src="${imageUrl}" alt="上傳的圖片" class="message-image">`;
+            }
+            if (text) {
+                content += `<p>${escapeHtml(text)}</p>`;
+            }
+            content += '</div></div>';
+            
+            messageDiv.innerHTML = content;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // 添加 AI 回應
+        function addAIResponse() {
+            const responses = [
+                {
+                    text: `這是一個很棒的問題！讓我來為你詳細解答：
+
+**重點說明：**
+- 這個技術方案很有前景
+- 可以通過多種方式實現
+- 建議採用漸進式開發
+
+\`\`\`javascript
+function example() {
+    console.log("這是程式碼範例");
+}
+\`\`\`
+
+> 記住：實踐是最好的學習方式！
+
+希望這個回答對你有幫助。還有其他問題嗎？`
+                },
+                {
+                    text: `我理解你的需求。基於你的描述，我建議以下解決方案：
+
+1. **前端架構**：使用 HTMX 處理動態交互
+2. **樣式設計**：採用現代 CSS Grid 和 Flexbox
+3. **響應式布局**：確保在各種設備上都能良好顯示
+
+這種方法的優勢是**簡單高效**，不需要複雜的 JavaScript 框架。`
+                },
+                {
+                    text: `非常好的想法！讓我為你分析一下：
+
+• **技術可行性**：完全可行
+• **開發難度**：中等
+• **維護成本**：較低
+
+建議你可以先從一個簡單的原型開始，然後逐步完善功能。需要我提供更具體的實現細節嗎？`
+                }
+            ];
+
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+            
+            const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+            const formattedText = formatText(randomResponse.text);
+            
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-text">${formattedText}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        // 格式化文本（Markdown-like）
+        function formatText(text) {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
+                .replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>')
+                .replace(/^• (.+)$/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+                .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+                .replace(/^#{1,3} (.+)$/gm, function(match, text) {
+                    const level = match.indexOf(' ');
+                    return `<h${level}>${text}</h${level}>`;
+                })
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/^(.+)$/gm, function(match) {
+                    if (!match.startsWith('<') && match.trim()) {
+                        return `<p>${match}</p>`;
+                    }
+                    return match;
+                });
+        }
+
+        // HTML 轉義
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 滾動到底部
+        function scrollToBottom() {
+            const messagesContainer = document.getElementById('chat-messages');
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 頁面載入時滾動到底部
+        window.addEventListener('load', scrollToBottom);
+    </script>
+</body>
+</html>
