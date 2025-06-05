@@ -469,10 +469,11 @@ function escapeHtml(text) {
                         currentAiMessage = addAIMessage("");  
                      }
                      data.content = data.content.replace(/\\n/g, '\n');
-                     const doc = parser.parseFromString(marked.parse(data.content), 'text/html');
+                     // const doc = parser.parseFromString(marked.parse(data.content), 'text/html');
                      // currentAiMessage.replaceChildren(pElement); // 添加新的文本
-                    // currentAiMessage.textContent += marked.parse(data.content);  // 添加新的文本
-                    currentAiMessage.innerHTML = formatText(doc.body.innerText);  // .parse(data.content);  // 添加新的文本 
+                    // currentAiMessage.textContent += marked.parse(data.content);  // 添加新的文本                    
+                    currentAiMessage.innerHTML = marked.parse(data.content); // doc.body.innerText);  // .parse(data.content);  // 添加新的文本 
+                    
                   }
                   chatContainer.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 滾動到最新消息  
                };
