@@ -1,0 +1,65 @@
+<html>
+   <head>
+      <title>Test Page</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   </head>
+   <body>
+
+<div class="todo-container">
+  <h2>現有待辦事項如下：</h2>
+  <div class="todo-item">
+    <div class="todo-id">ID: 3</div>
+    <div><b>負責者：</b>劉智漢</div>
+    <div class="status done">事件狀態：<span>✅ 已完成</span></div>
+    <div><b>到期時間：</b>2025-06-20T10:00:00Z</div>
+    <div><b>內容：</b>辦理自然人憑證延期申請</div>
+    <div class="created">建立時間：2025-06-04 07:22:41</div>
+  </div>
+  <div class="todo-item">
+    <div class="todo-id">ID: 8</div>
+    <div><b>負責者：</b>劉智漢</div>
+    <div class="status doing">事件狀態：<span>🟡 處理中</span></div>
+    <div><b>到期時間：</b>2025-06-04T09:51:00Z</div>
+    <div><b>內容：</b>(6) 請再增加本院網路服務...等服務狀態</div>
+    <div class="created">建立時間：2025-06-04 09:51:08</div>
+  </div>
+  <!-- 其他項目... -->
+</div>
+
+
+<style>
+.todo-container {
+  background: #8434bb;
+  color: #fff;
+  padding: 10px;
+  border-radius: 24px;
+  font-family: "Noto Sans TC", sans-serif;
+  max-width: 900px;
+}
+.todo-item {
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  padding: 16px 20px 10px 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+.todo-id {
+  font-size: 1.2em;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.status span {
+  font-weight: 700;
+}
+.status.done span { color: #8fff8f; }
+.status.doing span { color: #ffe066; }
+.status.undone span { color: #ff6f61; }
+.created {
+  font-size: 0.92em;
+  color: #ccc;
+  margin-top: 8px;
+}
+</style>
+   </body>
+</html>
