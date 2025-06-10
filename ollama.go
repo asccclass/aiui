@@ -185,7 +185,9 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
       // if err != nil {   
          return toolsResponse, nil
       // }
-      fmt.Println(toolsResponse)
+      if os.Getenv("Debug") == "true" {
+         fmt.Println("Tools response:", toolsResponse)
+      }
       // return app.Send2LLM(string(jData))
    }
    jData, err := app.Prompt2String(reqBody, "user", prompt)  // 如果沒有工具套用，則使用原始提示

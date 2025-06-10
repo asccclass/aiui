@@ -1,9 +1,7 @@
 package main
 
 import (
-   // "os"
    "fmt"
-   // "time"
    "strings"
    "encoding/json"
 )
@@ -25,6 +23,11 @@ func parseIntent(req GenerateRequest, userInput string) (map[string]interface{},
 - 新增/建立待辦事項 -> action: "create", parameters: {"context": "內容", "user": "負責者", "isFinished": "0"}
 - 修改/更新待辦事項 -> action: "update", parameters: {"id": "文字", 其他欄位...}
 - 刪除待辦事項 -> action: "delete", parameters: {"id": "string"}
+- 若欄位名稱為status/狀態時，請將欄位名稱替換為isFinish欄位：
+   - 當status/狀態為「未處理」、「未分類」、「未知」或類似狀態時，isFinish應設為 "0"
+   - 當status/狀態為「進行中」、「待處理」、「審核中」、「處理中/open/process/in progress」或類似狀態時，isFinish應設為 "1"
+   - 當status/狀態為「完成/completed/done」、「已結束/closed」、「已處理/finished」或類似狀態時，isFinish應設為 "2"
+   - 當status/狀態為「擱置/rejected」、「不處理」、「暫存/pause/suspended/pending」或類似狀態時，isFinish應設為 "3"
 
 如果不是待辦事項相關 -> action: "general_chat"
 

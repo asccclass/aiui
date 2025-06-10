@@ -127,7 +127,7 @@ func(c *MCPClient) Connect()(error) {
 	return nil
 }
 
-func NewMCPClient() *MCPClient {  // 創建 HTTP 客戶端，跳過 TLS 驗證 (僅用於開發)
+func NewMCPClient()(*MCPClient) {  // 創建 HTTP 客戶端，跳過 TLS 驗證 (僅用於開發)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},  // true 僅用於演示，生產環境應設為 false
 		// Proxy: http.ProxyFromEnvironment,
