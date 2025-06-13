@@ -67,7 +67,6 @@ func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 	hClient := &http.Client {
 	   Timeout: 60 * time.Second,
 	}
-fmt.Println("Send jsonData: ", string(jsonData))
 	resp, err := hClient.Post(serverURL + serverPath + "request", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return "", fmt.Errorf("make request: %s", err.Error())

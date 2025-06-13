@@ -20,11 +20,12 @@ package main
    - 向相應的Server發送請求，執行選定的工具
 這個程式展示了MCP Host如何管理多個MCP工具的完整流程，包括初始化連接、能力協商、工具選擇和執行。在實際應用中，HTTP請求和響應處理會更加複雜，但基本流程是相同的。
 */
-package main
 
 import (
+	"os"
+	"io"
    "fmt"
-   "log"
+   "time"
    "strings"
    "net/http"
    "encoding/json"
@@ -93,7 +94,9 @@ func(h *MCPHost) GetCapabilities(serviceName, endpoint string) (error) {
 	if err := json.Unmarshal(body, &server); err != nil {
 		return fmt.Errorf("JSON解析失敗: %v", err)
 	}
+	fmt.Println("成功連接到MCP Server:", server.Name, string(body))
 /*	
+   // ConnectedServers: make(map[string]*MCPServer)
 	// 模擬HTTP請求獲取Server能力，實際應用中，這裡會發送HTTP請求到endpoint
 	capabilities := ServerCapabilities{
 		Version:  "1.0",
@@ -123,13 +126,13 @@ func(h *MCPHost) GetCapabilities(serviceName, endpoint string) (error) {
 		ID:           serviceName,
 		Capabilities: capabilities,
 		Endpoint:     endpoint,
-	   IsRelatedPrompt string // 是否與ID服務事項相關
+	   IsRelatedPrompt string // 是否與ID服務事項相關判斷
 	   ProcessPrompt string // 處理ID服務事項的提示，若是則需要做何處理
 	}
 */
 
-	h.ConnectedServers[serviceName] = server
-	fmt.Printf("成功連接到MCP Server: %s，獲取到%d個工具\n", serviceName, len(capabilities.Tools))
+	h.ConnectedServers[serviceName] = &server
+	fmt.Printf("成功連接到MCP Server: %s，獲取到%d個工具\n", serviceName, len(server.Capabilities.Tools))
 	return nil
 }
 

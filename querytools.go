@@ -10,9 +10,7 @@ import (
 func parseIntent(req GenerateRequest, userInput string) (map[string]interface{}, error) {
    prompt := fmt.Sprintf(`你是一個待辦事項助手。請分析以下使用者輸入，判斷是否與待辦事項相關。
 
-使用者輸入："%s"
-
-請回應一個 JSON 格式，包含以下欄位：
+請依據使用者輸入，回應一個 JSON 格式，包含以下欄位：
 - "is_todo_related": true/false (是否與待辦事項相關)
 - "action": "get_all" | "get_by_id" | "create" | "update" | "delete" | "general_chat" (動作類型)
 - "parameters": {} (相關參數，如果有的話)
@@ -30,8 +28,10 @@ func parseIntent(req GenerateRequest, userInput string) (map[string]interface{},
    - 當status/狀態為「擱置/rejected」、「不處理」、「暫存/pause/suspended/pending」或類似狀態時，isFinish應設為 "3"
 
 如果不是待辦事項相關 -> action: "general_chat"
+請只回應 JSON，不要其他文字。
 
-請只回應 JSON，不要其他文字。`, userInput)
+使用者輸入："%s"
+`, userInput)
 
    response := ""
    var err error

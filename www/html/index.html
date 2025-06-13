@@ -31,6 +31,7 @@
             height: 100vh;
             overflow: hidden;
             position: relative;
+            padding-top: 50px;
         }
         li {
            margin-left: 20px;
@@ -45,7 +46,7 @@
             flex-direction: column;
             position: absolute;
             left: 0;
-            top: 0;
+            top: 50px;
             bottom: 0;
             transition: transform 0.3s ease-in-out;
             z-index: 10;
@@ -272,6 +273,138 @@
            font-size: 14px;
            max-width: 100%;
         }
+        .top-toolbar {
+           position: fixed;
+           top: 0;
+           left: 0;
+  right: 0;
+  height: 50px;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+  z-index: 9999;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.toolbar-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.toolbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.toolbar-title {
+  font-size: 18px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toolbar-btn {
+  background: #eee;
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  background-color: #f0f0f0;
+}
+.toolbar-menu-btn {
+  display: none;
+  padding: 8px 12px;
+  border: none;
+  background-color: transparent;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.toggle-btn {
+  color: #333;
+  border-radius: 8px;
+  transition: background 0.2s, color 0.2s;
+  cursor: pointer;
+}
+
+.toggle-btn[aria-pressed="true"] {
+  background: #4caf50;
+  color: #fff;
+  border-color: #4caf50;
+}
+
+/* 平板尺寸 (768px 以下) */
+@media (max-width: 768px) {
+  .top-toolbar {
+    height: 56px;
+  }
+  
+  .toolbar-content {
+    padding: 0 12px;
+  }
+  
+  .toolbar-title {
+    font-size: 16px;
+  }
+  
+  .toolbar-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+  
+  body {
+    padding-top: 56px;
+  }
+}
+/* 手機尺寸 (480px 以下) */
+@media (max-width: 480px) {
+  .top-toolbar {
+    height: 52px;
+  }
+  
+  .toolbar-content {
+    padding: 0 8px;
+  }
+  
+  .toolbar-title {
+    font-size: 15px;
+  }
+  
+  .toolbar-btn {
+    display: none;
+  }
+  
+  .toolbar-menu-btn {
+    display: block;
+  }
+  
+  body {
+    padding-top: 52px;
+  }
+}
+/* 超小螢幕 (320px 以下) */
+@media (max-width: 320px) {
+  .toolbar-title {
+    font-size: 14px;
+  }
+  
+  .toolbar-content {
+    padding: 0 4px;
+  }
+}
+
     </style>
 </head>
 <body>
@@ -306,7 +439,24 @@
         </div>
     </div>
     <div id="main-content">
-        <div id="chat-container" class="chat-area">
+       <div class="top-toolbar">
+          <div class="toolbar-content">
+             <div class="toolbar-left">
+                <span class="toolbar-title">&nbsp;</span>
+             </div>
+             <div class="toolbar-right">
+                <button class="toolbar-btn" onclick="sendMessage('列出所有待辦事項')">
+                    <i class="fa-solid fa-table-list"></i> 待辦事項
+                </button>
+                <button class="toolbar-btn toggle-btn" aria-pressed="false">
+                    <i class="fa-solid fa-language"></i> 英翻中
+                </button>
+                <button class="toolbar-btn"></button>
+                <button class="toolbar-menu-btn">☰</button>
+             </div>
+          </div>
+       </div>
+       <div id="chat-container" class="chat-area">
             <!-- 聊天訊息會在這裡顯示 -->
             <div class="message ai-message">
                 <div class="message-content">
@@ -341,8 +491,8 @@
               <label for="file-input" id="file-label"><i class="fas fa-paperclip"></i></label>
               <input type="hidden" name="model" id="model-input">
               <input type="file" id="file-input">
-              <input type="text" id="message-input" name="message-input" placeholder="輸入您的訊息..." required
-                onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.dispatchEvent(new Event('submit')); }">
+              <textarea id="message-input" name="message-input" placeholder="輸入您的訊息..." required
+                onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.dispatchEvent(new Event('submit')); }"></textarea>
               <button id="send-button" type="submit">Send message</button>
            </div>
        </form>
@@ -419,17 +569,28 @@ function escapeHtml(text) {
             const mainContent = document.getElementById('main-content');
             const toggleSidebar = document.getElementById('toggle-sidebar');
             const exampleDiv = document.getElementById('chat-container');
+            var prefix = ""; 
 
             // Initial
             document.getElementById('model-input').value = document.getElementById('model-dropdown').value;  // 初始化隱藏字段值            
             document.getElementById('model-dropdown').addEventListener('change', function() { // 改變選擇時，將選擇的模型值傳遞到隱藏輸入字段
                document.getElementById('model-input').value = this.value;
             });
+            
             htmx.defineExtension('sse-events', {
                 onEvent: function(name, event) { // 處理SSE事件
                 }
             });
 
+document.querySelector('.toggle-btn').addEventListener('click', function() {
+   if(this.getAttribute('aria-pressed') === 'true') {
+      this.setAttribute('aria-pressed', 'false');
+      prefix = "";  // 清除預設文本
+   } else {
+      this.setAttribute('aria-pressed', 'true');
+      prefix = "請將以下中文翻譯成英文：\n\n";
+   }    
+});            
             // 側邊欄開關功能
             toggleSidebar.addEventListener('click', function() {
                 sidebar.classList.toggle('hidden');
@@ -454,60 +615,6 @@ function escapeHtml(text) {
                });
             });
 
-            // 提交表單時處理用戶消息並連接SSE
-            document.querySelector('form').addEventListener('submit', function(e) {
-               e.preventDefault();            
-               // 連接到SSE端點
-               const selectedModel = document.getElementById('model-dropdown').value;
-               const eventSource = new EventSource(`/sse?message=${encodeURIComponent(messageInput.value)}&model=${encodeURIComponent(selectedModel)}`);
-               let currentAiMessage = null;
-               addUserMessage(messageInput.value); // 顯示用戶消息
-
-               eventSource.onmessage = function(event) {    // 收到訊息
-                  const data = JSON.parse(event.data);
-                  if(data.type === 'complete') {  // 完成時關閉連接並隱藏指示器
-                     eventSource.close();
-                     example.style.display = 'none';  // 隱藏範例區域
-                     // typingIndicator.style.display = 'none';
-                     if(currentAiMessage) currentAiMessage.dataset.complete = 'true';
-                  } else if(data.type === 'chunk') {  // 第一個塊時創建新消息元素
-                     if(!currentAiMessage) {
-                        currentAiMessage = addAIMessage("");  
-                     }
-                     data.content = data.content.replace(/\\n/g, '\n');
-                     // const doc = parser.parseFromString(marked.parse(data.content), 'text/html');
-                     // currentAiMessage.replaceChildren(pElement); // 添加新的文本
-                    // currentAiMessage.textContent += marked.parse(data.content);  // 添加新的文本                    
-                    currentAiMessage.innerHTML = marked.parse(data.content); // doc.body.innerText);  // .parse(data.content);  // 添加新的文本 
-                    
-                  }
-                  chatContainer.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 滾動到最新消息  
-               };
-
-               // 錯誤處理
-               eventSource.onerror = function(e) {
-                  eventSource.close();
-                  // typingIndicator.style.display = 'none';
-                  addAIMessage('連接出現問題，請稍後再試。'); // 顯示錯誤消息
-                  console.error('SSE連接錯誤:', e);
-               };
-               messageInput.value = '';  // 清空輸入框
-            });
-
-            // 發送訊息功能
-            function sendMessage() {
-                const message = messageInput.value.trim();
-                if(message) {
-                    addUserMessage(message);  // 添加使用者訊息到聊天
-                    messageInput.value = '';   // 清空輸入框
-                    
-                    // 模擬AI回覆
-                    setTimeout(() => {
-                        addAIMessage("我收到你的訊息了：" + message);
-                    }, 1000);
-                }
-            }
-
             // 添加使用者訊息
             function addUserMessage(text) {
                 const messageDiv = document.createElement('div');
@@ -529,9 +636,51 @@ function escapeHtml(text) {
                 contentDiv.textContent = text;                
                 messageDiv.appendChild(contentDiv);
                 chatContainer.appendChild(messageDiv);
-                chatContainer.scrollTop = chatContainer.scrollHeight;  // 滾動到底部
+                chatContainer.scrollTop = chatContainer.scrollHeight;  // 滾動到底部           
                 return contentDiv; // 返回訊息元素以便後續使用
             }
+
+            // 發送訊息功能
+             window.sendMessage = function(message) {
+               if(!message)  message = messageInput.value.trim();
+               if(!message)  return;  // 如果沒有輸入訊息則不處理
+               // 連接到SSE端點
+               const selectedModel = document.getElementById('model-dropdown').value;
+               const eventSource = new EventSource(`/sse?message=${encodeURIComponent(prefix + message)}&model=${encodeURIComponent(selectedModel)}`);
+               let currentAiMessage = null;
+               addUserMessage(message);  // 添加使用者訊息到聊天
+               
+               eventSource.onmessage = function(event) {    // 收到訊息
+                  const data = JSON.parse(event.data);
+                  if(data.type === 'complete') {  // 完成時關閉連接並隱藏指示器
+                     eventSource.close();
+                     example.style.display = 'none';  // 隱藏範例區域
+                     if(currentAiMessage) currentAiMessage.dataset.complete = 'true';
+                     chatContainer.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 滾動到最新消息  
+                  } else if(data.type === 'chunk') {  // 第一個塊時創建新消息元素
+                     if(!currentAiMessage) {
+                        currentAiMessage = addAIMessage("");  
+                     }
+                     data.content = data.content.replace(/\\n/g, '\n');            
+                     currentAiMessage.innerHTML = marked.parse(data.content);     
+                     chatContainer.scrollTop = chatContainer.scrollHeight;  // 滾動到底部               
+                  }
+               };
+
+               // 錯誤處理
+               eventSource.onerror = function(e) {
+                  eventSource.close();
+                  addAIMessage('連接出現問題，請稍後再試。'); // 顯示錯誤消息
+                  console.error('SSE連接錯誤:', e);
+               };
+               messageInput.value = '';   // 清空輸入框
+            }
+
+            // 提交表單時處理用戶消息並連接SSE
+            document.querySelector('form').addEventListener('submit', function(e) {
+               e.preventDefault();
+               sendMessage(messageInput.value) ;
+            });
 
             // 按Enter鍵發送訊息
             messageInput.addEventListener('keypress', function(e) {
