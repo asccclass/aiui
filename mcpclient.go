@@ -191,13 +191,16 @@ func RunTools(req GenerateRequest, prompt string)(string, error) {
 
 	case "create":
 		context, hasContext := parameters["context"].(string)
-		user, hasUser := parameters["user"].(string)
+		// user, hasUser := parameters["user"].(string)
 		if !hasContext || context == "" {
 			context = prompt  // 嘗試從原始輸入中提取內容
 		}
+		user, _ := parameters["user"].(string)
+		/*
 		if !hasUser || user == "" {
 			user = "預設使用者"
 		}
+			*/
 		args := map[string]interface{}{
 			"context": context,
 			"user":    user,
@@ -209,7 +212,6 @@ func RunTools(req GenerateRequest, prompt string)(string, error) {
 		if isFinish, exists := parameters["isFinish"]; exists {
 			args["isFinish"] = isFinish
 		}
-
 		return callMCPTool("create_todo", args)
 
 	case "update":

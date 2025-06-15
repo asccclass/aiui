@@ -26,6 +26,13 @@ func parseIntent(req GenerateRequest, userInput string) (map[string]interface{},
    - 當status/狀態為「進行中」、「待處理」、「審核中」、「處理中/open/process/in progress」或類似狀態時，isFinish應設為 "1"
    - 當status/狀態為「完成/completed/done」、「已結束/closed」、「已處理/finished」或類似狀態時，isFinish應設為 "2"
    - 當status/狀態為「擱置/rejected」、「不處理」、「暫存/pause/suspended/pending」或類似狀態時，isFinish應設為 "3"
+- 當使用者輸入的文字中包含「時間相關語句」（如「明天上午十點」、「下週三下午三點」等），請將該時間轉換為標準 UTC 格式，格式為 YYYY-MM-DD HH:MM:SS。
+   - 例如使用者輸入「明天上午十點開會」，請判斷當前時間(如：2025-06-14）為基準，加一天後時間為 2025-06-15 10:00:00，並將此值存為欄位名稱：duetime。
+   - 若時間資訊模糊（如「晚上」、「中午」），請估算合理時間（如「晚上」可設為 20:00:00）。
+   - 若沒有指定年份、月份、日期，則年月日為當前西元年月日。
+   - 輸出要求：
+      - 時間應為完整的 UTC 格式時間字串（YYYY-MM-DD HH:MM:SS）。
+      - 資料應儲存在欄位 duetime。
 
 如果不是待辦事項相關 -> action: "general_chat"
 請只回應 JSON，不要其他文字。
