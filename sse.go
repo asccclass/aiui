@@ -84,9 +84,6 @@ func SSEChat(w http.ResponseWriter, r *http.Request) {
    }
    // 模擬AI回應模式
    responses := AIResponse(model, message)
-
-   // fmt.Printf("收到消息: %s，使用模型: %s，AI回應：%s\n", message, model, responses)
-
    // 逐步發送回應片段 SSE 格式要求每行以 \n 結尾，而 \r\n 會被視為額外的換行符。
    for _, chunk := range responses {      
       data, err := json.Marshal(chunk)  // 將消息轉換為JSON

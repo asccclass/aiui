@@ -15,12 +15,12 @@ func NewRouter(srv *SherryServer.Server, documentRoot string)(*http.ServeMux) {
    staticfileserver.AddRouter(router)
 
    if os.Getenv("OllamaUrl") != "" { // AI Chat
-      ollam := NewOllamaClient()
-      if ollam == nil { 
+      ollama := NewOllamaClient()
+      if ollama == nil { 
          return nil
       }
-      AIs["Ollama"] = ollam
-      ollam.AddRouter(router)
+      AIs["Ollama"] = ollama
+      ollama.AddRouter(router)
    }
 
    // Input App router

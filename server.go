@@ -54,8 +54,7 @@ func main() {
       return
    }
    
-   // 新版 MCP Host
-   /*
+   // 新版 MCP Host   
    mcpHost := NewMCPHost()
    serviceName := "todo" // 這裡可以替換為實際的服務名稱
    endpoint := "https://www.justdrink.com.tw/mcpsrv/capabilities/" + serviceName
@@ -63,8 +62,7 @@ func main() {
       fmt.Printf("獲取 MCP Server 能力失敗: %s\n", err.Error())   
       return
    }
-   fmt.Printf("獲取 MCP Server 能力成功\n")
-*/
+
    server.Server.Handler = router  // server.CheckCROS(router)  // 需要自行implement, overwrite 預設的
    server.Start()
 }
