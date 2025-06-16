@@ -9,6 +9,7 @@ import (
 
 var AIs map[string]interface{}
 var McpClient *MCPClient       // MCPClient 用於與 MCP Server 進行交互
+var McpHost *MCPHost           // MCPHost 用於處理 MCP Server 的能力
 
 func main() {
    currentDir, err := os.Getwd()
@@ -55,10 +56,10 @@ func main() {
    }
    
    // 新版 MCP Host   
-   mcpHost := NewMCPHost()
+   McpHost = NewMCPHost()
    serviceName := "todo" // 這裡可以替換為實際的服務名稱
    endpoint := "https://www.justdrink.com.tw/mcpsrv/capabilities/" + serviceName
-   if err := mcpHost.GetCapabilities(serviceName, endpoint); err != nil {
+   if err := McpHost.GetCapabilities(serviceName, endpoint); err != nil {
       fmt.Printf("獲取 MCP Server 能力失敗: %s\n", err.Error())   
       return
    }

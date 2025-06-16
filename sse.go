@@ -75,14 +75,13 @@ func SSEChat(w http.ResponseWriter, r *http.Request) {
       return
    }
 
-
    // 創建SSE刷新器
    flusher, ok := w.(http.Flusher)
    if !ok {
       http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
       return
    }
-   // 模擬AI回應模式
+   // 模擬AI回應模式   
    responses := AIResponse(model, message)
    // 逐步發送回應片段 SSE 格式要求每行以 \n 結尾，而 \r\n 會被視為額外的換行符。
    for _, chunk := range responses {      
