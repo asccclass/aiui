@@ -68,8 +68,7 @@ type MCPHost struct {
 
 
 // 連接到MCP Server並進行能力協商，只執行一次
-func(h *MCPHost) GetCapabilities(serviceName, endpoint string) (error) {
-	fmt.Printf("正在連接到MCP Server 取得資料: %s (%s)\n", serviceName, endpoint)
+func(h *MCPHost) AddCapabilities(serviceName, endpoint string) (error) {
 	// 建立HTTP客戶端，設定逾時時間
 	client := &http.Client{
 		Timeout: 10 * time.Second,
@@ -94,43 +93,6 @@ func(h *MCPHost) GetCapabilities(serviceName, endpoint string) (error) {
 	if err := json.Unmarshal(body, &server); err != nil {
 		return fmt.Errorf("JSON解析失敗: %v", err)
 	}
-	fmt.Println("成功連接到MCP Server:", server.Name, string(body))
-/*	
-   // ConnectedServers: make(map[string]*MCPServer)
-	// 模擬HTTP請求獲取Server能力，實際應用中，這裡會發送HTTP請求到endpoint
-	capabilities := ServerCapabilities{
-		Version:  "1.0",
-		ServerID: serverID,
-		Tools: []Tool{
-			{
-				Name:        "file_reader",
-				Description: "讀取本地文件內容",
-				Parameters: map[string]string{
-					"file_path": "文件路徑",
-				},
-			},
-			{
-				Name:        "database_query",
-				Description: "執行SQL查詢",
-				Parameters: map[string]string{
-					"query":      "SQL查詢語句",
-					"database":   "數據庫名稱",
-					"connection": "連接字符串",
-				},
-			},
-		},
-	}
-
-	// 創建並存儲Server連接
-	server := &MCPServer{
-		ID:           serviceName,
-		Capabilities: capabilities,
-		Endpoint:     endpoint,
-	   IsRelatedPrompt string // 是否與ID服務事項相關判斷
-	   ProcessPrompt string // 處理ID服務事項的提示，若是則需要做何處理
-	}
-*/
-
 	h.ConnectedServers[serviceName] = &server
 	fmt.Printf("成功連接到MCP Server: %s，獲取到%d個工具\n", serviceName, len(server.Capabilities.Tools))
 	return nil

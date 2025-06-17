@@ -6,7 +6,7 @@ import(
 	"sync"
 	"time"
 	"bufio"
-   "strconv"
+   // "strconv"
 	"net/http"
 	"crypto/tls"
 	"encoding/json"
@@ -142,25 +142,51 @@ func NewMCPClient()(*MCPClient) {  // 創建 HTTP 客戶端，跳過 TLS 驗證 
 	}
 }
 
+// 尋找工具
+func SearchTool(srv *MCPServer, action string)(*Tool, error) {
+	for _, tool := range srv.Capabilities.Tools {  // 遍歷所有工具
+		fmt.Println("Tool:", tool.Name, action)
+		if tool.Name == action {  // 如果找到匹配的工具
+			return &tool, nil
+		}
+	}
+	return nil, fmt.Errorf("未找到名為 %s 的工具", action)  // 如果沒有找到，返回錯誤
+}
+
 // 執行 Tools 工具
 func RunTools(req GenerateRequest, prompt string)(string, error) {
-   s, err := parseIntent(req, prompt) // (map[string]interface{}, error)	
-   if err != nil {
-      return "", err
-   }
-   isTodoRelated, ok := s["is_todo_related"].(bool)
-   if !ok || !isTodoRelated {
-      return "", fmt.Errorf("not related tools")
-   }
-   action, ok := s["action"].(string)
-   if !ok {
-	   return "", fmt.Errorf("No action found in intent")
+	if len(McpHost.ConnectedServers) == 0 {  // 檢查是否有連接的 MCP Server
+		return "", fmt.Errorf("no connected MCP servers")	
+	}	
+	for _, srv:= range McpHost.ConnectedServers {  // 遍歷所有MCP Server
+      if srv.IsRelatedPrompt == "" {
+			continue  // 如果沒有相關提示，則跳過
+		}
+      s, err := parseIntent(req, prompt, srv) // (map[string]interface{}, error)	
+      if err != nil {
+			fmt.Println("解析意圖失敗:", err.Error())
+         continue  // 如果解析失敗，則跳過
+      }
+      action, ok := s["action"].(string)
+		if os.Getenv("Debug") == "true" {
+         fmt.Println("Action:", action)
+		}
+      if !ok || action == "general_chat"{
+	      continue  // 如果沒有動作，則跳過
+	   }
+		tool, err := SearchTool(srv, action)  // (string, error)
+		if err != nil {
+			fmt.Errorf("查找工具失敗: %s", err.Error())
+			continue  // 如果查找工具失敗，則跳過
+		}
+      parameters, ok := s["parameters"].(map[string]interface{})
+	   if !ok {
+		   parameters = make(map[string]interface{})
+	   }
+		return callMCPTool(tool.Name, parameters)  // 調用 MCP 工具
 	}
-   parameters, ok := s["parameters"].(map[string]interface{})
-	if !ok {
-		parameters = make(map[string]interface{})
-	}
- 
+	return "", fmt.Errorf("未找到相關的 MCP Server 或工具")
+ /*
 	switch action {  // 根據動作調用相應的 MCP 工具
 	case "get_all":
 		res, err := callMCPTool("get_all_todos", make(map[string]interface{}))
@@ -191,16 +217,10 @@ func RunTools(req GenerateRequest, prompt string)(string, error) {
 
 	case "create":
 		context, hasContext := parameters["context"].(string)
-		// user, hasUser := parameters["user"].(string)
 		if !hasContext || context == "" {
 			context = prompt  // 嘗試從原始輸入中提取內容
 		}
 		user, _ := parameters["user"].(string)
-		/*
-		if !hasUser || user == "" {
-			user = "預設使用者"
-		}
-			*/
 		args := map[string]interface{}{
 			"context": context,
 			"user":    user,
@@ -268,4 +288,5 @@ func RunTools(req GenerateRequest, prompt string)(string, error) {
 		return "", fmt.Errorf("未知的動作類型: %s", action)
 	}
    return prompt, nil
+	*/
 }

@@ -64,6 +64,9 @@ func callMCPTool(toolName string, args map[string]interface{}) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("marshal request: %s", err.Error())
 	}
+   if os.Getenv("Debug") == "true" {
+		fmt.Println("MCPServer 請求內容:", string(jsonData))  // MCPServer 請求內容
+	}
 	hClient := &http.Client {
 	   Timeout: 60 * time.Second,
 	}

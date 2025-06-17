@@ -179,7 +179,7 @@ func(app *OllamaClient) Ask(modelName, userinput string, files []string) (string
       Stream: false,
    }
    // MCP 工具套用   
-   toolsResponse, err := RunTools(reqBody, prompt)  // (map[string]interface, error)
+   toolsResponse, err := RunTools(reqBody, prompt)  // (map[string]interface, error)   
    if err == nil {  // 如果有工具套用，則使用工具回應
       // jData, err := app.Prompt2String(reqBody, "user", "把下列內容，用人類的語氣重新改寫，請使用繁體中文回答，並去除掉簡體字：" + toolsResponse)  // 如果沒有工具套用，則使用原始提示
       // if err != nil {   

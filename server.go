@@ -44,6 +44,7 @@ func main() {
       fmt.Println("router return nil")
       return
    }
+   /*
    // 啟動 MCP 客戶端
    McpClient = NewMCPClient()
    if McpClient == nil {   
@@ -54,12 +55,13 @@ func main() {
       fmt.Printf("連接到 MCP Server 失敗: %s\n", err.Error())
       return
    }
+      */
    
    // 新版 MCP Host   
    McpHost = NewMCPHost()
    serviceName := "todo" // 這裡可以替換為實際的服務名稱
    endpoint := "https://www.justdrink.com.tw/mcpsrv/capabilities/" + serviceName
-   if err := McpHost.GetCapabilities(serviceName, endpoint); err != nil {
+   if err := McpHost.AddCapabilities(serviceName, endpoint); err != nil {
       fmt.Printf("獲取 MCP Server 能力失敗: %s\n", err.Error())   
       return
    }
