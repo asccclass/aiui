@@ -448,10 +448,12 @@
                 <button class="toolbar-btn" onclick="sendMessage('列出所有待辦事項')">
                     <i class="fa-solid fa-table-list"></i> 待辦事項
                 </button>
-                <button class="toolbar-btn toggle-btn" aria-pressed="false">
+                <button class="toolbar-btn toggle-btn" aria-pressed="false" tag="英翻中">
                     <i class="fa-solid fa-language"></i> 英翻中
                 </button>
-                <button class="toolbar-btn"></button>
+                <button class="toolbar-btn toggle-btn" aria-pressed="false" tag="中翻英">
+                    <i class="fa-solid fa-language"></i> 中翻英
+                </button>
                 <button class="toolbar-menu-btn">☰</button>
              </div>
           </div>
@@ -582,15 +584,28 @@ function escapeHtml(text) {
                 }
             });
 
-document.querySelector('.toggle-btn').addEventListener('click', function() {
-   if(this.getAttribute('aria-pressed') === 'true') {
-      this.setAttribute('aria-pressed', 'false');
-      prefix = "";  // 清除預設文本
-   } else {
-      this.setAttribute('aria-pressed', 'true');
-      prefix = "請將以下中文翻譯成英文：\n\n";
-   }    
-});            
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+   btn.addEventListener('click', function() {
+      let tag = this.getAttribute('tag');
+      if(tag === '英翻中') {
+         if(this.getAttribute('aria-pressed') === 'true') {
+            this.setAttribute('aria-pressed', 'false');
+            prefix = "";  // 清除預設文本
+         } else {
+            this.setAttribute('aria-pressed', 'true');
+            prefix = "請將以下中文翻譯成英文：\n\n";
+         }    
+      } else if(tag === '中翻英') {
+         if(this.getAttribute('aria-pressed') === 'true') {
+            this.setAttribute('aria-pressed', 'false');
+            prefix = "";  // 清除預設文本
+         } else {
+            this.setAttribute('aria-pressed', 'true');
+            prefix = "請將以下英文翻譯成中文：\n\n";
+         }
+      }
+   });            
+});
             // 側邊欄開關功能
             toggleSidebar.addEventListener('click', function() {
                 sidebar.classList.toggle('hidden');
