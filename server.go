@@ -62,8 +62,7 @@ func main() {
    serviceName := "todo" // 這裡可以替換為實際的服務名稱
    endpoint := "https://www.justdrink.com.tw/mcpsrv/capabilities/" + serviceName
    if err := McpHost.AddCapabilities(serviceName, endpoint); err != nil {
-      fmt.Printf("獲取 MCP Server 能力失敗: %s\n", err.Error())   
-      return
+      fmt.Printf("獲取 MCP Server %s 服務失敗: %s\n", serviceName,err.Error())        
    }
 
    server.Server.Handler = router  // server.CheckCROS(router)  // 需要自行implement, overwrite 預設的
