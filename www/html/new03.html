@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+   <meta http-equiv="X-UA-Compatible" content="IE=edge">
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>Jii Chat-雞寮</title>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/framer-motion/10.16.4/framer-motion.min.js"></script>
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">    
+   <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+   <script src="https://unpkg.com/htmx-ext-sse@2.2.3" integrity="sha384-Y4gc0CK6Kg+hmulDc6rZPJu0tqvk7EWlih0Oh+2OkAi1ZDlCbBDCQEE2uVk472Ky" crossorigin="anonymous"></script>
+   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+   <link rel="stylesheet" type="text/css" href="css/index.css">
+</head>
+<body>
+   <div class="main-container" id="mainContainer">
+      
+        <!-- 側邊欄 -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="隱藏/顯示側邊欄">
+                   <i class="fas fa-bars"></i>
+                </button>
+                <div class="sidebar-brand">Jii Chat 雞寮</div>
+            </div>           
+            <div class="sidebar-icons">
+                <div class="sidebar-icon" title="聊天">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <div class="sidebar-icon" title="設定">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="sidebar-icon" title="歷史記錄">
+                    <i class="fas fa-history"></i>
+                </div>
+                <div class="sidebar-icon" title="幫助">
+                    <i class="fas fa-question-circle"></i>
+                </div>
+            </div>
+            <div class="sidebar-content">
+            <!-- 新增：將下拉選單移到新對話框上方 -->
+               <div class="model-select">
+                  <select id="model-dropdown" hx-get="/models" hx-trigger="load" hx-swap="none"></select>
+               </div>
+                <h2>功能選單</h2>
+                <nav>
+                    <ul class="nav-menu"> 
+                        <li class="nav-item">
+                            <a href="#" class="nav-link active" hx-post="/new-chat" hx-trigger="click" hx-target="#chat-container" hx-swap="innerHTML">
+                               <i class="fas fa-plus"></i>新對話                                
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" hx-get="/api/models" hx-target="#info-panel">
+                                <i class="fas fa-brain"></i>
+                                模型選擇
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" hx-get="/api/history" hx-target="#info-panel">
+                                <i class="fas fa-clock"></i>
+                                對話歷史
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" hx-get="/api/templates" hx-target="#info-panel">
+                                <i class="fas fa-file-alt"></i>
+                                對話模板
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" hx-get="/api/settings" hx-target="#info-panel">
+                                <i class="fas fa-sliders-h"></i>
+                                進階設定
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link" hx-get="/api/analytics" hx-target="#info-panel">
+                                <i class="fas fa-chart-line"></i>
+                                使用統計
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+
+        <!-- 主要內容區域 (聊天區域) -->
+        <div class="main-content">
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <div class="chat-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="chat-info">
+                        <h3>AI 助手</h3>
+                        <div class="chat-status">在線 • 立即回應</div>
+                    </div>
+                </div>
+                
+                <div class="chat-header-right">
+                    <!-- 功能工具列 -->
+                    <div class="function-toolbar">
+                        <button class="function-btn" data-tooltip="待辦事項" onclick="toggleTodoList()">
+                            <i class="fas fa-tasks"></i>
+                        </button>
+                        <button class="function-btn" data-tooltip="英翻中" onclick="setTranslationMode('en-to-zh')">
+                            <i class="fas fa-language"></i>
+                        </button>
+                        <button class="function-btn" data-tooltip="中翻英" onclick="setTranslationMode('zh-to-en')">
+                            <i class="fas fa-globe"></i>
+                        </button>
+                        <button class="function-btn" data-tooltip="中英文切換" onclick="toggleLanguage()">
+                            <i class="fas fa-exchange-alt"></i>
+                        </button>
+                        <button class="function-btn" data-tooltip="更多功能" onclick="showMoreFunctions()">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+
+                    <!-- 登入者資訊 -->
+                    <div class="user-info">
+                        <div class="user-avatar">王</div>
+                        <div>
+                            <div class="user-name">王小明</div>
+                            <div class="user-status">線上</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chat-container" class="chat-messages">
+                <div class="message">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-bubble ai-message">
+                        您好！我是AI助手，很高興為您服務。有什麼問題需要幫助嗎？
+                    </div>
+                </div>
+
+                <div class="message user">
+                    <div class="message-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="message-bubble">
+                        你好！請介紹一下這個AI Chat平台的特色功能。
+                    </div>
+                </div>
+
+                <div class="message">
+                    <div class="message-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-bubble">
+                        這個AI Chat平台具有以下特色：<br>
+                        • 智能對話：基於GPT-4的自然語言處理<br>
+                        • 多語言支援：支援中文、英文等多種語言<br>
+                        • 程式碼輔助：協助程式設計和除錯<br>
+                        • 創意寫作：協助內容創作和文案撰寫<br>
+                        • 即時回應：平均回應時間僅1.2秒
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input">
+               <form hx-trigger="submit" hx-ext="sse-events" hx-target="#chat-container" hx-swap="beforeend">
+                <div class="input-container">
+                    <input type="hidden" name="model" id="model-input">
+                    <input type="file" id="file-input">
+                    <textarea id="message-input" name="message-input" placeholder="輸入您的問題..." required class="chat-input-field" 
+                        onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.dispatchEvent(new Event('submit')); }"></textarea>
+                    <button class="send-button" id="send-button" type="submit"><i class="fas fa-paper-plane"></i></button>
+                </div>
+               </form>
+            </div>
+        </div>
+
+        <!-- 資訊面板 -->
+        <div class="info-panel" id="info-panel">
+
+            <div class="hero-section">
+                <h1 class="hero-title">Jii Chat 雞寮</h1>
+                <p class="hero-subtitle">體驗下一代人工智慧對話平台，讓AI成為您最得力的助手</p>
+            </div>
+
+            <!-- Bento Grid 卡片布局 -->
+            <div class="bento-grid">
+                <div class="bento-card card-large" hx-get="/api/stats/conversations" hx-trigger="load">
+                    <div>
+                        <h3 class="card-title">對話統計</h3>
+                        <div class="card-number">2.4K</div>
+                    </div>
+                    <p class="card-description">本月已處理對話數量，AI回應準確率達98.5%</p>
+                </div>
+
+                <div class="bento-card" hx-get="/api/stats/users" hx-trigger="load">
+                    <div>
+                        <h3 class="card-title">活躍用戶</h3>
+                        <div class="card-number">856</div>
+                    </div>
+                    <p class="card-description">日活躍用戶數</p>
+                </div>
+
+                <div class="bento-card">
+                    <div>
+                        <h3 class="card-title">回應速度</h3>
+                        <div class="card-number">1.2s</div>
+                    </div>
+                    <p class="card-description">平均回應時間</p>
+                </div>
+
+                <div class="bento-card card-wide">
+                    <div>
+                        <h3 class="card-title">AI 模型</h3>
+                        <p class="card-description">採用最新GPT-4架構，支援多語言對話、程式碼生成、創意寫作等多種應用場景</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <span style="background: var(--accent-gradient); padding: 5px 12px; border-radius: 15px; font-size: 0.8em;">GPT-4</span>
+                        <span style="background: var(--secondary-gradient); padding: 5px 12px; border-radius: 15px; font-size: 0.8em;">多語言</span>
+                    </div>
+                </div>
+
+                <div class="bento-card card-tall">
+                    <div>
+                        <h3 class="card-title">功能特色</h3>
+                        <ul style="list-style: none; padding: 0; margin-top: 15px; color: var(--text-secondary);">
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-check" style="color: #4facfe;"></i>
+                                智能對話
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-check" style="color: #4facfe;"></i>
+                                程式碼輔助
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-check" style="color: #4facfe;"></i>
+                                創意寫作
+                            </li>
+                            <li style="padding: 8px 0; display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-check" style="color: #4facfe;"></i>
+                                數據分析
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bento-card">
+                    <div>
+                        <h3 class="card-title">滿意度</h3>
+                        <div class="card-number">4.9</div>
+                    </div>
+                    <p class="card-description">用戶評分 (5分制)</p>
+                </div>
+
+                <div class="bento-card">
+                    <div>
+                        <h3 class="card-title">在線狀態</h3>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 10px;">
+                            <div style="width: 12px; height: 12px; background: #4facfe; border-radius: 50%; animation: pulse 2s infinite;"></div>
+                            <span style="color: #4facfe; font-weight: 500;">運行中</span>
+                        </div>
+                    </div>
+                    <p class="card-description">AI系統正常運行</p>
+                </div>
+            </div>            
+        </div>
+    </div>
+
+    <script>
+ var messageInput;
+
+const parser = new DOMParser();
+
+// 取得模型的下拉選單
+document.addEventListener("htmx:afterRequest", function (event) {
+   if (event.detail.target.id === "model-dropdown") {
+      const jsonData = JSON.parse(event.detail.xhr.responseText);
+      console.log(jsonData[0]);
+      const modelList = document.getElementById("model-dropdown");
+      jsonData.forEach(model => {                    
+         modelList.innerHTML += model;
+      });
+   }
+});
+
+// SSE連接處理
+function setupSSEConnection(messageId) {  
+   const eventSource = new EventSource(`/${messageId}`);
+   const messageContent = document.querySelector(`#message-${messageId} .message-content`);
+   console.log("SSE連接已建立，ID:", messageId);
+            
+   eventSource.onmessage = function(event) {
+      const data = JSON.parse(event.data);                
+      if(data.content)  messageContent.innerHTML = data.content;
+      if(data.done) eventSource.close();
+   };
+           
+   eventSource.onerror = function() {
+      eventSource.close();
+   };
+}
+
+// 側邊欄切換功能
+function toggleSidebar() {
+   const container = document.getElementById('mainContainer');
+   container.classList.toggle('sidebar-open');
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const chatContainer = document.getElementById('chat-container');
+    messageInput = document.getElementById('message-input');
+    const fileInput = document.getElementById('file-input');
+    const mainContent = document.getElementById('main-content');
+    var prefix = ""; 
+
+    // 設定模型
+    document.getElementById('model-input').value = document.getElementById('model-dropdown').value;  // 初始化隱藏字段值            
+    document.getElementById('model-dropdown').addEventListener('change', function() { // 改變選擇時，將選擇的模型值傳遞到隱藏輸入字段
+        document.getElementById('model-input').value = this.value;
+    });
+    
+    htmx.defineExtension('sse-events', {
+        onEvent: function(name, event) { // 處理SSE事件
+        }
+    });
+
+    // HTMX事件處理器
+    document.body.addEventListener('htmx:afterSwap', function(event) {      
+        const newElements = event.detail.target.querySelectorAll('[id^="message-"]');  // 如果新增了訊息元素並且有特定的ID
+        newElements.forEach(element => {
+            const messageId = element.id.replace('message-', '');
+            if(element.classList.contains('ai-message'))  setupSSEConnection(messageId);
+        });
+    });
+
+
+    // 添加使用者訊息
+    function addUserMessage(text) {
+        const message = text.trim();        
+        const chatMessages = document.getElementById('chat-container');
+        const userMessage = document.createElement('div');
+        userMessage.className = 'message user';
+        userMessage.innerHTML = `
+            <div class="message-avatar">
+                <i class="fas fa-user"></i>
+            </div>
+            <div class="message-bubble">${message}</div>
+        `;
+        chatMessages.appendChild(userMessage);
+        messageInput.value = '';  // 清空輸入框
+        chatContainer.scrollTop = chatContainer.scrollHeight;  // 滾動到底部
+    }
+
+    // 添加AI訊息
+    function addAIMessage(text) {
+        const chatMessages = document.getElementById('chat-container');
+        const aiMessage = document.createElement('div');
+        aiMessage.className = 'message';
+        aiMessage.innerHTML = `
+            <div class="message-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="message-bubble">${text}</div>
+        `;
+        chatMessages.appendChild(aiMessage);
+        chatMessages.scrollTop = chatMessages.scrollHeight;  // 滾動到底部           
+        return chatMessages; // 返回訊息元素以便後續使用
+    }
+
+    
+    // 發送訊息功能
+    window.sendMessage = function(message) {
+        if(!message)  message = messageInput.value.trim();
+        if(!message)  return;  // 如果沒有輸入訊息則不處理
+        // 連接到SSE端點
+        const selectedModel = document.getElementById('model-dropdown').value;
+        const eventSource = new EventSource(`/sse?message=${encodeURIComponent(prefix + message)}&model=${encodeURIComponent(selectedModel)}`);
+        let currentAiMessage = null;
+        addUserMessage(message);  // 添加使用者訊息到聊天
+        
+        eventSource.onmessage = function(event) {    // 收到訊息
+            const data = JSON.parse(event.data);
+            if(data.type === 'complete') {  // 完成時關閉連接並隱藏指示器
+                eventSource.close();
+                // example.style.display = 'none';  // 隱藏範例區域
+                if(currentAiMessage) currentAiMessage.dataset.complete = 'true';
+                chatContainer.scrollIntoView({ behavior: 'smooth', block: 'end' }); // 滾動到最新消息  
+            } else if(data.type === 'chunk') {  // 第一個塊時創建新消息元素
+                if(!currentAiMessage) {
+                   // currentAiMessage = addAIMessage("");  
+                }
+                data.content = data.content.replace(/\\n/g, '\n');            
+                addAIMessage(marked.parse(data.content)); // 使用marked解析Markdown內容   
+                chatContainer.scrollTop = chatContainer.scrollHeight;  // 滾動到底部               
+            }
+        };
+
+        // 錯誤處理
+        eventSource.onerror = function(e) {
+            eventSource.close();
+            addAIMessage('連接出現問題，請稍後再試。'); // 顯示錯誤消息
+            console.error('SSE連接錯誤:', e);
+        };
+        messageInput.value = '';   // 清空輸入框
+    }
+
+    // 提交表單時處理用戶消息並連接SSE
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        sendMessage(messageInput.value) ;
+    });
+});
+
+        // 功能按鈕的JavaScript函數
+        function toggleTodoList() { sendMessage('列出所有待辦事項'); }
+
+        function setTranslationMode(mode) {
+            const buttons = document.querySelectorAll('.function-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            if (mode === 'en-to-zh') {
+                console.log('設定為英翻中模式');
+                event.target.classList.add('active');
+                document.querySelector('.chat-input-field').placeholder = 'Enter English text to translate to Chinese...';
+            } else if (mode === 'zh-to-en') {
+                console.log('設定為中翻英模式');
+                event.target.classList.add('active');
+                document.querySelector('.chat-input-field').placeholder = '輸入中文文字翻譯成英文...';
+            }
+        }
+
+        function toggleLanguage() {
+            console.log('切換語言');
+            const currentLang = document.documentElement.lang;
+            if (currentLang === 'zh-TW') {
+                document.documentElement.lang = 'en';
+                // 可以在這裡實現語言切換邏輯
+                alert('語言切換功能開發中...');
+            } else {
+                document.documentElement.lang = 'zh-TW';
+            }
+        }
+
+        function showMoreFunctions() {
+            console.log('顯示更多功能');
+            // 這裡可以顯示更多功能選單
+            alert('更多功能即將推出...');
+        }
+
+        // 初始化動畫
+        document.addEventListener('DOMContentLoaded', function() {
+            // 側邊欄默認開啟
+            const container = document.getElementById('mainContainer');
+            container.classList.add('sidebar-open');
+            
+            // 添加卡片動畫
+            const cards = document.querySelectorAll('.bento-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+
+            // 脈衝動畫
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes pulse {
+                    0% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: scale(1.2);
+                        opacity: 0.7;
+                    }
+                    100% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+        });
+
+        // HTMX 事件監聽
+        document.body.addEventListener('htmx:afterRequest', function(event) {
+            if (event.detail.xhr.status === 200) {
+                console.log('HTMX request successful');
+            }
+        });
+
+        // 模擬聊天功能
+        document.addEventListener('htmx:configRequest', function(event) {
+            if (event.detail.path === '/api/chat/send') {
+                event.preventDefault();
+                
+                const input = document.querySelector('.chat-input-field');
+                const message = input.value.trim();
+                
+                if (message) {
+                    // 添加用戶消息
+                    const chatMessages = document.getElementById('chatMessages');
+                    const userMessage = document.createElement('div');
+                    userMessage.className = 'message user';
+                    userMessage.innerHTML = `
+                        <div class="message-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div class="message-bubble">${message}</div>
+                    `;
+                    chatMessages.appendChild(userMessage);
+                    
+                    // 清空輸入框
+                    input.value = '';
+                    
+                    // 模擬AI回應
+                    setTimeout(() => {
+                        const aiMessage = document.createElement('div');
+                        aiMessage.className = 'message';
+                        aiMessage.innerHTML = `
+                            <div class="message-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="message-bubble">感謝您的問題！這是一個模擬回應。在實際應用中，這裡會連接到Go後端API進行處理。</div>
+                        `;
+                        chatMessages.appendChild(aiMessage);
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    }, 1000);
+                    
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                }
+            }
+        });
+    </script>
+   </div>
+</body>
+</html>
